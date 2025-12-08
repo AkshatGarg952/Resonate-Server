@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h3>Get Firebase ID Token</h3>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZRttP0lpLDWolCSxGI5TG3fZ_0zhyZV0",
+      authDomain: "resonate-client.firebaseapp.com",
+      projectId: "resonate-client",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // 👇 enter your test user email + password
+    const email = "abc@gmail.com";
+    const password = "123456";
+
+    signInWithEmailAndPassword(auth, email, password)
+      .then(async (userCredential) => {
+        const token = await userCredential.user.getIdToken();
+        console.log("ID TOKEN:", token);
+        alert("Token printed in console");
+      })
+      .catch((error) => console.error(error));
+  </script>
+
+</body>
+</html>
