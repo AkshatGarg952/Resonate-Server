@@ -1,6 +1,6 @@
 import multer from "multer";
 
-const storage = multer.memoryStorage(); // File stays in memory buffer
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   if (file.mimetype === "application/pdf") cb(null, true);

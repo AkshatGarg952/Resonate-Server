@@ -57,11 +57,11 @@ export const uploadDiagnostics = async (req, res) => {
     if (!req.file)
       return res.status(400).json({ message: "PDF file required" });
 
-    // Upload PDF to Cloudinary
+  
     const uploadResult = await cloudinary.uploader.upload_stream(
       {
-        resource_type: "raw",        // VERY IMPORTANT
-        folder: "resonate-reports",           // optional folder
+        resource_type: "raw",        
+        folder: "resonate-reports",           
         format: "pdf"
       },
       async (error, result) => {
@@ -70,14 +70,13 @@ export const uploadDiagnostics = async (req, res) => {
 
         const pdfUrl = result.secure_url;
 
-        // save pending record meanwhile
+
         const record = await Diagnostics.create({
           userId: uid,
           pdfUrl,
           status: "pending"
         });
 
-        // Call AI parser (FastAPI)
         const parsingResponse = await axios.post(
           "http://localhost:8000/parse-report",
           { pdfUrl }
@@ -85,7 +84,6 @@ export const uploadDiagnostics = async (req, res) => {
 
         const biomarkers = parsingResponse.data;
 
-        // Update DB
         record.biomarkers = biomarkers;
         record.status = "completed";
         await record.save();
@@ -98,7 +96,6 @@ export const uploadDiagnostics = async (req, res) => {
       }
     );
 
-    // write file buffer into stream
     uploadResult.end(req.file.buffer);
 
   } catch (error) {
@@ -108,7 +105,6 @@ export const uploadDiagnostics = async (req, res) => {
 };
 
 
-// GET latest diagnostics
 export const getLatestDiagnostics = async (req, res) => {
   try {
     const { uid } = req.user;
@@ -122,7 +118,7 @@ export const getLatestDiagnostics = async (req, res) => {
 };
 
 
-// GET history list
+
 export const getDiagnosticsHistory = async (req, res) => {
   try {
     const { uid } = req.user;
