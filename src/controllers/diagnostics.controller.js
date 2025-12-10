@@ -35,7 +35,7 @@ export const uploadDiagnostics = async (req, res) => {
         const user = await User.findOne({firebaseUid: uid})
 
         const parsingResponse = await axios.post(
-          "http://localhost:8000/parse-report",
+          "https://resonate-microservice.onrender.com/parse-report",
           { pdfUrl }
         );
 
