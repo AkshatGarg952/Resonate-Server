@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
     age: Number,
     weight: Number,
     goals: String,
+    phone: { type: String },
   },
   { timestamps: true }
 );

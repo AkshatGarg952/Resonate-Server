@@ -12,7 +12,7 @@ admin.initializeApp({
   storageBucket: "resonate-client.appspot.com", 
 });
 
-
+  
 export const storage = getStorage().bucket("gs://resonate-client.appspot.com");
 
 
