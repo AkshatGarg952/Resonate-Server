@@ -1,9 +1,44 @@
 import { Diagnostics } from "../models/Diagnostics.js";
-import {User} from "../models/User.js"; 
-// import { storage } from "../middlewares/firebaseAuth.js"; 
+import {User} from "../models/User.js";  
 import cloudinary from "../config/cloudinary.js";
 import axios from "axios";
 import sendReportReady from "../services/notification.js";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+function makeBiomarker(biomarker, value) {
+  if (value == null) {
+    return { value: null, status: "bad" };
+  }
+
+  return {
+    value,
+    status: calcStatus(biomarker, value)
+  };
+}
+
+function calcStatus(biomarker, value) {
+  const [low, high] = RANGES[biomarker];
+  if (value < low || value > high){
+    return "bad";
+  }
+  else{
+    return "good";
+  }
+}
+
+const RANGES = {
+  hemoglobin: [12, 16],
+  fastingGlucose: [70, 99],
+  hdl: [40, 200],
+  ldl: [0, 100],
+  triglycerides: [0, 150],
+  tsh: [0.4, 4.0],
+  vitaminD: [30, 100],
+  alt: [7, 56],
+  ast: [10, 40],
+};
 
 export const uploadDiagnostics = async (req, res) => {
   try {
@@ -35,7 +70,7 @@ export const uploadDiagnostics = async (req, res) => {
         const user = await User.findOne({firebaseUid: uid})
 
         const parsingResponse = await axios.post(
-          "http://localhost:8000/parse-report",
+          `${process.env.MICROSERVICE_URL}/parse-report`,
           { pdfUrl }
         );
 
@@ -89,3 +124,54 @@ export const getDiagnosticsHistory = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+
+export const fetchDiagnosticsFromAPI = async (req, res) => {
+  try{
+    const { uid } = req.user;
+
+    const labResponse = await axios.get(
+      `${process.env.LAB_API_URL}/reports?patient_id=${uid}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.LAB_API_KEY}`
+        }
+      }
+    );
+
+    const data = labResponse.data;
+
+    if (!data) {
+      return res.status(400).json({ message: "No biomarker data received" });
+    }
+
+    const mapped = {
+      hemoglobin: makeBiomarker(data.hemoglobin),
+      fastingGlucose: makeBiomarker(data.fastingGlucose),
+      hdl: makeBiomarker(data.hdl),
+      ldl: makeBiomarker(data.ldl),
+      triglycerides: makeBiomarker(data.triglycerides),
+      tsh: makeBiomarker(data.tsh),
+      vitaminD: makeBiomarker(data.vitaminD),
+      alt: makeBiomarker(data.alt),
+      ast: makeBiomarker(data.ast),
+    };
+    
+    const record = await Diagnostics.create({
+      userId: uid,
+      pdfUrl: "N/A",
+      biomarkers: mapped,
+      status: "completed"
+    });
+
+    return res.json({
+      message: "Data fetched & processed successfully",
+      diagnostics: record
+    });    
+    
+  }
+
+  catch(error){
+    return res.status(500).json({ error: error.message });
+  }
+}

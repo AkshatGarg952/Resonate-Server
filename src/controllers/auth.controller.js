@@ -4,7 +4,6 @@ export const registerUser = async (req, res) => {
   try {
     const { uid, email, name } = req.user;
     const { age, weight, goal, phone } = req.body;  
-    console.log(req.user)
 
     let user = await User.findOne({ firebaseUid: uid });
   
@@ -31,11 +30,8 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   try {
     const { uid } = req.user;
-
     const user = await User.findOne({ firebaseUid: uid });
-    console.log(user)
     if (!user) {
-      console.log("hhh")
       return res.status(404).json({ message: "User not found" });
     }
 

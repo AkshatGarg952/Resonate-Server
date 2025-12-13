@@ -18,6 +18,7 @@ export const storage = getStorage().bucket("gs://resonate-client.appspot.com");
 
 
 export const verifyFirebaseToken = async (req, res, next) => {
+
   const token = req.headers.authorization?.split(" ")[1];
 
   if (!token)
