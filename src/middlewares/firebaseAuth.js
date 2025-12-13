@@ -1,21 +1,16 @@
 import admin from "firebase-admin";
-import fs from "fs";
-import { getStorage } from "firebase-admin/storage"; 
+import { getStorage } from "firebase-admin/storage";
 
+if (!admin.apps.length) {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
 
-const serviceAccount = JSON.parse(
-  fs.readFileSync("./firebase-adminsdk.json", "utf8")
-);
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    storageBucket: "resonate-client.appspot.com",
+  });
+}
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: "resonate-client.appspot.com", 
-});
-
-  
 export const storage = getStorage().bucket("gs://resonate-client.appspot.com");
-
-
 
 export const verifyFirebaseToken = async (req, res, next) => {
 
