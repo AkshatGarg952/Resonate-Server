@@ -14,6 +14,11 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("Resonate API is running...");
 });
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
 app.use("/diagnostics", diagnosticsRoutes);
