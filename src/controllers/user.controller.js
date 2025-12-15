@@ -17,11 +17,11 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const { uid } = req.user;
-    const { age, weight, goal } = req.body;
+    const { name, gender, age, height, weight, dietType, goals, hasMedicalCondition, medicalConditions} = req.body;
 
     const updatedUser = await User.findOneAndUpdate(
       { firebaseUid: uid },
-      { age, weight, goals:goal },
+      { name, gender, age, height, weight, dietType, goals, hasMedicalCondition, medicalConditions },
       { new: true }
     );
 

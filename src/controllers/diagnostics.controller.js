@@ -133,7 +133,7 @@ export const uploadDiagnostics = async (req, res) => {
               { pdfUrl }
             );
 
-            console.log("parsingResponse",parsingResponse)
+            console.log("parsing", parsingResponse);
 
             record.biomarkers = parsingResponse.data.biomarkers;
             record.status = "completed";
@@ -146,12 +146,10 @@ export const uploadDiagnostics = async (req, res) => {
 
           } catch (err) {
             console.log(err);
-            // 🔥 THIS is the important part
             record.status = "failed";
             await record.save();
 
             if (err.response) {
-              // FastAPI error forwarded AS-IS
               return res.status(err.response.status).json({
                 message: err.response.data.detail,
               });
