@@ -40,61 +40,140 @@ const RANGES = {
   ast: [10, 40],
 };
 
-export const uploadDiagnostics = async (req, res) => {
-  try {
-    const { uid } = req.user;
+// export const uploadDiagnostics = async (req, res) => {
+//   try {
+//     const { uid } = req.user;
     
-    if (!req.file)
-      return res.status(400).json({ message: "PDF file required" });
+//     if (!req.file)
+//       return res.status(400).json({ message: "PDF file required" });
 
   
-    const uploadResult = await cloudinary.uploader.upload_stream(
+//     const uploadResult = await cloudinary.uploader.upload_stream(
+//       {
+//         resource_type: "raw",        
+//         folder: "resonate-reports",           
+//         format: "pdf"
+//       },
+//       async (error, result) => {
+
+//         if (error) throw error;
+
+//         const pdfUrl = result.secure_url;
+
+
+//         const record = await Diagnostics.create({
+//           userId: uid,
+//           pdfUrl,
+//           status: "pending"
+//         });
+
+//         const user = await User.findOne({firebaseUid: uid})
+
+//         const parsingResponse = await axios.post(
+//           `${process.env.MICROSERVICE_URL}/parse-report`,
+//           { pdfUrl }
+//         );
+
+//         const biomarkers = parsingResponse.data;
+
+//         record.biomarkers = biomarkers;
+//         record.status = "completed";
+//         await record.save();
+
+
+//         await sendReportReady(user.phone);
+//         return res.json({
+//           message: "Report uploaded and parsed successfully",
+//           diagnostics: record
+//         });
+
+//       }
+//     );
+
+//     uploadResult.end(req.file.buffer);
+
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ error: error.message });
+//   }
+// };
+
+
+export const uploadDiagnostics = async (req, res) => {
+  const { uid } = req.user;
+
+  if (!req.file) {
+    return res.status(400).json({ message: "PDF file required" });
+  }
+
+  try {
+    const uploadStream = cloudinary.uploader.upload_stream(
       {
-        resource_type: "raw",        
-        folder: "resonate-reports",           
-        format: "pdf"
+        resource_type: "raw",
+        folder: "resonate-reports",
+        format: "pdf",
       },
       async (error, result) => {
+        try {
+          if (error) {
+            return res.status(500).json({ message: "Cloudinary upload failed" });
+          }
 
-        if (error) throw error;
+          const pdfUrl = result.secure_url;
 
-        const pdfUrl = result.secure_url;
+          const record = await Diagnostics.create({
+            userId: uid,
+            pdfUrl,
+            status: "pending",
+          });
 
+          try {
+            const parsingResponse = await axios.post(
+              `${process.env.MICROSERVICE_URL}/parse-report`,
+              { pdfUrl }
+            );
 
-        const record = await Diagnostics.create({
-          userId: uid,
-          pdfUrl,
-          status: "pending"
-        });
+            console.log("parsingResponse",parsingResponse)
 
-        const user = await User.findOne({firebaseUid: uid})
+            record.biomarkers = parsingResponse.data.biomarkers;
+            record.status = "completed";
+            await record.save();
 
-        const parsingResponse = await axios.post(
-          `${process.env.MICROSERVICE_URL}/parse-report`,
-          { pdfUrl }
-        );
+            return res.json({
+              message: "Report uploaded and parsed successfully",
+              diagnostics: record,
+            });
 
-        const biomarkers = parsingResponse.data;
+          } catch (err) {
+            console.log(err);
+            // 🔥 THIS is the important part
+            record.status = "failed";
+            await record.save();
 
-        record.biomarkers = biomarkers;
-        record.status = "completed";
-        await record.save();
+            if (err.response) {
+              // FastAPI error forwarded AS-IS
+              return res.status(err.response.status).json({
+                message: err.response.data.detail,
+              });
+            }
 
+            return res.status(500).json({
+              message: "Microservice unreachable",
+            });
+          }
 
-        await sendReportReady(user.phone);
-        return res.json({
-          message: "Report uploaded and parsed successfully",
-          diagnostics: record
-        });
-
+        } catch (err) {
+          console.error("Internal error:", err);
+          return res.status(500).json({ message: "Internal server error" });
+        }
       }
     );
 
-    uploadResult.end(req.file.buffer);
+    uploadStream.end(req.file.buffer);
 
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error("Outer error:", err);
+    return res.status(500).json({ message: "Something went wrong" });
   }
 };
 

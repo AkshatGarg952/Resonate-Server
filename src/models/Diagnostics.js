@@ -26,7 +26,7 @@ const diagnosticsSchema = new mongoose.Schema(
       ast: biomarkerSchema,
     },
     
-    status: { type: String, enum: ["pending", "completed"], default: "pending" }
+    status: { type: String, enum: ["pending", "completed", "failed"], default: "pending" }
   },
   { timestamps: true }
 );

@@ -6,7 +6,7 @@ export const registerUser = async (req, res) => {
     const { age, weight, goal, phone } = req.body;  
 
     let user = await User.findOne({ firebaseUid: uid });
-  
+    
     if (!user) {
       user = await User.create({
         firebaseUid: uid,
@@ -20,7 +20,7 @@ export const registerUser = async (req, res) => {
 
       return res.json({ message: "User Registered", user });
     }
-
+    
     return res.json({ message: "User already registered!"});
   } catch (error) {
     return res.status(500).json({ error: error.message });
