@@ -11,6 +11,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["male", "female", "other"]
     },
+
+    fitnessProvider: {
+      type: String,
+      enum: ["google_fit", "apple_health"],
+    },
+
+    fitnessConnected: {
+      type: Boolean
+    },
+    
     age: Number,
     height: Number,
     weight: Number,
