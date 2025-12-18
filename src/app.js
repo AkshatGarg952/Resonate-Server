@@ -3,7 +3,7 @@ import cors from "cors";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import diagnosticsRoutes from "./routes/diagnostics.routes.js";
-
+import fitRoutes from "./routes/fitConnect.routes.js"
 const app = express();
 
 app.use(cors());
@@ -22,5 +22,6 @@ app.get("/health", (req, res) => {
 app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
 app.use("/diagnostics", diagnosticsRoutes);
+app.use("/fit", fitRoutes);
 
 export default app;
