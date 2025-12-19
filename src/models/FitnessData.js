@@ -1,38 +1,21 @@
 import mongoose from "mongoose";
 
-const dailyFitnessSchema = new mongoose.Schema({
-  date: {
-    type: Date,
-    required: true
+const workoutSchema = new mongoose.Schema(
+  {
+    type: String,
+    durationMinutes: Number,
+    caloriesBurned: Number
   },
-
-  steps: {
-    type: Number,
-    default: 0
-  },
-
-  sleepHours: {
-    type: Number,
-    default: 0
-  },
-
-  workouts: [
-    {
-      type: {
-        type: String,
-      },
-      durationMinutes: Number,
-      caloriesBurned: Number
-    }
-  ]
-});
+  { _id: false }
+);
 
 const fitnessDataSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
+      index: true
     },
 
     provider: {
@@ -41,13 +24,35 @@ const fitnessDataSchema = new mongoose.Schema(
       required: true
     },
 
-    dailyData: [dailyFitnessSchema],
+    date: {
+      type: String,
+      required: true,
+      index: true
+    },
+
+    steps: {
+      type: Number,
+      default: 0
+    },
+
+    sleepHours: {
+      type: Number,
+      default: 0
+    },
+
+    workouts: [workoutSchema],
 
     lastSyncTime: {
       type: Date
     }
   },
   { timestamps: true }
+);
+
+
+fitnessDataSchema.index(
+  { userId: 1, provider: 1, date: 1 },
+  { unique: true }
 );
 
 export const FitnessData = mongoose.model("FitnessData", fitnessDataSchema);
