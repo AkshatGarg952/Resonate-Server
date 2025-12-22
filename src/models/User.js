@@ -33,6 +33,13 @@ const userSchema = new mongoose.Schema(
       enum: ["vegetarian", "eggetarian", "non_vegetarian"],
     },
 
+      googleFit: {
+    accessToken: String,
+    refreshToken: String,
+    expiryDate: Number
+  },
+
+  
     hasMedicalCondition: { type: Boolean, default: false },
     medicalConditions: [String],
   },

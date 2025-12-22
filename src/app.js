@@ -4,6 +4,7 @@ import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import diagnosticsRoutes from "./routes/diagnostics.routes.js";
 import fitRoutes from "./routes/fitConnect.routes.js"
+import { startFitnessSync } from "./cron/fitnessSync.js";
 const app = express();
 
 app.use(cors());
@@ -12,6 +13,7 @@ app.use(express.json());
 
 // ROUTES
 app.get("/", (req, res) => {
+  startFitnessSync();
   res.send("Resonate API is running...");
 });
 

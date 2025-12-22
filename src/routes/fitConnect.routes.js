@@ -1,32 +1,59 @@
 import { oauth2Client } from "../googleClient.js";
+import { User } from "../models/User.js";
 import express from 'express';
+import { verifyFirebaseToken } from "../middlewares/firebaseAuth.js";
 import { fetchSteps, parseSteps } from "../services/googleFitSteps.js";
 import { fetchSleep, parseSleep } from "../services/googleFitSleep.js";
 import { fetchWorkouts, parseWorkouts } from "../services/googleFitWorkouts.js";
 
+import { FitnessData } from "../models/FitnessData.js"; 
 
 
 const router = express.Router();
 
-router.get("/google", (req, res) => {
+router.get("/google", verifyFirebaseToken, (req, res) => {
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
     scope: [
       "https://www.googleapis.com/auth/fitness.activity.read",
       "https://www.googleapis.com/auth/fitness.sleep.read"
     ],
-    prompt: "consent"
+    prompt: "consent",
+    
+    state: req.user.firebaseUid
   });
-
+  
   res.redirect(url);
 });
 
 
 router.get("/google/callback", async (req, res) => {
-  const { code } = req.query;
+  const { code, state: firebaseUid } = req.query;
 
+  
+    if (!code || !firebaseUid) {
+      return res.status(400).send("Invalid OAuth callback");
+    }
+  
   const { tokens } = await oauth2Client.getToken(code);
   oauth2Client.setCredentials(tokens);
+  
+  const user = await User.findOne({ firebaseUid });
+
+    if (!user) {
+      return res.status(401).send("User not found");
+    }
+
+  user.googleFit = {
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+    expiryDate: tokens.expiry_date
+  };
+
+  await user.save();
+  
+  user.fitnessProvider = "google_fit";
+  user.fitnessConnected = true;
 
   const stepBuckets = await fetchSteps(tokens.access_token);
   const stepsData = parseSteps(stepBuckets);
@@ -43,6 +70,21 @@ router.get("/google/callback", async (req, res) => {
   
   console.log("Workouts", workoutData);
   console.log(tokens);
+
+    await FitnessData.findOneAndUpdate(
+      {
+        userId: user._id,
+        provider: "google_fit",
+        date
+      },
+      {
+        steps: stepsData.steps,
+        sleepHours: sleepData.sleepHours,
+        workouts: workoutData.workouts,
+        lastSyncTime: new Date()
+      },
+      { upsert: true, new: true }
+    );
   
   res.send("Google Fit connected successfully");
 });
