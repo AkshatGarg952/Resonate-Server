@@ -1,7 +1,7 @@
 import { oauth2Client } from "../googleClient.js";
 import { User } from "../models/User.js";
 import express from 'express';
-import { verifyFirebaseToken } from "../middlewares/firebaseAuth.js";
+import { isAuthenticated } from "../middlewares/isAuthenticated.js";
 import { fetchSteps, parseSteps } from "../services/googleFitSteps.js";
 import { fetchSleep, parseSleep } from "../services/googleFitSleep.js";
 import { fetchWorkouts, parseWorkouts } from "../services/googleFitWorkouts.js";
@@ -11,7 +11,7 @@ import { FitnessData } from "../models/FitnessData.js";
 
 const router = express.Router();
 
-router.get("/google", verifyFirebaseToken, (req, res) => {
+router.get("/google", isAuthenticated, (req, res) => {
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
     scope: [
@@ -56,35 +56,33 @@ router.get("/google/callback", async (req, res) => {
   user.fitnessConnected = true;
 
   const stepBuckets = await fetchSteps(tokens.access_token);
-  const stepsData = parseSteps(stepBuckets);
-
-  console.log("Steps", stepsData);
+  const stepsHistory  = parseSteps(stepBuckets);
 
   const sleepBuckets = await fetchSleep(tokens.access_token);
-  const sleepData = parseSleep(sleepBuckets);
-
-  console.log("Sleep", sleepData);
+  const sleepHistory  = parseSleep(sleepBuckets);
 
   const workoutBuckets = await fetchWorkouts(tokens.access_token);
-  const workoutData = parseWorkouts(workoutBuckets);
+  const workoutHistory  = parseWorkouts(workoutBuckets);
   
-  console.log("Workouts", workoutData);
-  console.log(tokens);
 
     await FitnessData.findOneAndUpdate(
-      {
-        userId: user._id,
-        provider: "google_fit",
-        date
-      },
-      {
-        steps: stepsData.steps,
-        sleepHours: sleepData.sleepHours,
-        workouts: workoutData.workouts,
-        lastSyncTime: new Date()
-      },
-      { upsert: true, new: true }
-    );
+  {
+    userId: user._id,
+    provider: "google_fit"
+  },
+  {
+    $set: {
+      stepsHistory,
+      sleepHistory,
+      workoutHistory,
+      lastSyncTime: new Date()
+    }
+  },
+  {
+    upsert: true,
+    new: true
+  }
+);
   
   res.send("Google Fit connected successfully");
 });

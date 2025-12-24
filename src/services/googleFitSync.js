@@ -1,11 +1,19 @@
+// services/googleFitSync.js
 import { User } from "../models/User.js";
-import { FitnessData } from "../models/FitnessData.js"; 
+import { FitnessData } from "../models/FitnessData.js";
 import { oauth2Client } from "../googleClient.js";
 
 import { fetchSteps, parseSteps } from "./googleFitSteps.js";
 import { fetchSleep, parseSleep } from "./googleFitSleep.js";
 import { fetchWorkouts, parseWorkouts } from "./googleFitWorkouts.js";
 
+// 🔥 IMPORT NORMALIZERS
+import {
+  normalizeLast7Days,
+  normalizeWorkoutLast7Days,
+} from "../utils/normalizeLast7Days.js";
+
+/* ------------------ ENTRY ------------------ */
 
 export async function syncGoogleFitForAllUsers() {
   const users = await User.find({
@@ -17,11 +25,12 @@ export async function syncGoogleFitForAllUsers() {
     try {
       await syncSingleUser(user);
     } catch (err) {
-      console.error(`Sync failed for user ${user._id}`, err.message);
+      console.error(`❌ Sync failed for user ${user._id}`, err.message);
     }
   }
 }
 
+/* ------------------ PER USER ------------------ */
 
 async function syncSingleUser(user) {
   oauth2Client.setCredentials({
@@ -45,31 +54,40 @@ async function syncSingleUser(user) {
   await fetchAndSaveFitnessData(user);
 }
 
+/* ------------------ CORE ------------------ */
 
 async function fetchAndSaveFitnessData(user) {
+  // 1️⃣ Fetch raw data
   const stepsBuckets = await fetchSteps();
   const sleepBuckets = await fetchSleep();
   const workoutBuckets = await fetchWorkouts();
 
-  const stepsData = parseSteps(stepsBuckets);
-  const sleepData = parseSleep(sleepBuckets);
-  const workoutData = parseWorkouts(workoutBuckets);
+  // 2️⃣ Parse raw data
+  const parsedSteps = parseSteps(stepsBuckets);
+  const parsedSleep = parseSleep(sleepBuckets);
+  const parsedWorkouts = parseWorkouts(workoutBuckets);
 
-  const date = stepsData.date;
+  // 3️⃣ 🔥 NORMALIZE TO EXACT 7 DAYS
+  const stepsHistory = normalizeLast7Days(parsedSteps, "steps");
+  const sleepHistory = normalizeLast7Days(parsedSleep, "sleepHours");
+  const workoutHistory = normalizeWorkoutLast7Days(parsedWorkouts);
 
+  // 4️⃣ Save
   await FitnessData.findOneAndUpdate(
     {
       userId: user._id,
       provider: "google_fit",
-      date
     },
     {
-      steps: stepsData.steps,
-      sleepHours: sleepData.sleepHours,
-      workouts: workoutData.workouts,
-      lastSyncTime: new Date()
+      $set: {
+        stepsHistory,
+        sleepHistory,
+        workoutHistory,
+        lastSyncTime: new Date(),
+      },
     },
     { upsert: true, new: true }
   );
-}
 
+  console.log("Job Completed!");
+}

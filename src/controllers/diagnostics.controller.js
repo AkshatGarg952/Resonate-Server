@@ -42,11 +42,16 @@ const RANGES = {
 
 
 export const uploadDiagnostics = async (req, res) => {
-  const { uid } = req.user;
+  
+  if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
   if (!req.file) {
     return res.status(400).json({ message: "PDF file required" });
   }
+
+  const userId = req.user._id;
 
   try {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -64,7 +69,7 @@ export const uploadDiagnostics = async (req, res) => {
           const pdfUrl = result.secure_url;
 
           const record = await Diagnostics.create({
-            userId: uid,
+            userId,
             pdfUrl,
             status: "pending",
           });
@@ -120,9 +125,9 @@ export const uploadDiagnostics = async (req, res) => {
 
 export const getLatestDiagnostics = async (req, res) => {
   try {
-    const { uid } = req.user;
+    const userId = req.user._id;
 
-    const latest = await Diagnostics.findOne({ userId: uid })
+    const latest = await Diagnostics.findOne({ userId })
   .sort({ createdAt: -1 })
   .select("biomarkers status pdfUrl updatedAt");
 
@@ -136,9 +141,9 @@ export const getLatestDiagnostics = async (req, res) => {
 
 export const getDiagnosticsHistory = async (req, res) => {
   try {
-    const { uid } = req.user;
+    const userId = req.user._id;
 
-    const history = await Diagnostics.find({ userId: uid })
+    const history = await Diagnostics.find({ userId })
     .sort({ createdAt: -1 })
     .select("biomarkers status pdfUrl updatedAt");
     
@@ -151,10 +156,10 @@ export const getDiagnosticsHistory = async (req, res) => {
 
 export const fetchDiagnosticsFromAPI = async (req, res) => {
   try{
-    const { uid } = req.user;
+    const userId = req.user._id;
 
     const labResponse = await axios.get(
-      `${process.env.LAB_API_URL}/reports?patient_id=${uid}`,
+      `${process.env.LAB_API_URL}/reports?patient_id=${userId}`,
       {
         headers: {
           Authorization: `Bearer ${process.env.LAB_API_KEY}`

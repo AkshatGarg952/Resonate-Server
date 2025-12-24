@@ -1,10 +1,10 @@
 import express from "express";
-import { verifyFirebaseToken } from "../middlewares/firebaseAuth.js";
+import { isAuthenticated } from "../middlewares/isAuthenticated.js";
 import { getProfile, updateProfile } from "../controllers/user.controller.js";
 
 const router = express.Router();
 
-router.get("/profile", verifyFirebaseToken, getProfile);
-router.put("/profile", verifyFirebaseToken, updateProfile);
+router.get("/profile", isAuthenticated, getProfile);
+router.put("/profile", isAuthenticated, updateProfile);
 
 export default router;

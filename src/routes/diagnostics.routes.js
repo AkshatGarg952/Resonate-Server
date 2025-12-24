@@ -1,5 +1,5 @@
 import express from "express";
-import { verifyFirebaseToken } from "../middlewares/firebaseAuth.js";
+import { isAuthenticated } from "../middlewares/isAuthenticated.js";
 import { uploadPDF } from "../middlewares/pdfUpload.js";
 import {
   uploadDiagnostics,
@@ -10,9 +10,9 @@ import {
 
 const router = express.Router();
 
-router.post("/upload", verifyFirebaseToken, uploadPDF.single("report"), uploadDiagnostics);
-router.get("/latest", verifyFirebaseToken, getLatestDiagnostics);
-router.get("/history", verifyFirebaseToken, getDiagnosticsHistory);
-router.post("/fetch-from-api", verifyFirebaseToken, fetchDiagnosticsFromAPI);
+router.post("/upload", isAuthenticated, uploadPDF.single("report"), uploadDiagnostics);
+router.get("/latest", isAuthenticated, getLatestDiagnostics);
+router.get("/history", isAuthenticated, getDiagnosticsHistory);
+router.post("/fetch-from-api", isAuthenticated, fetchDiagnosticsFromAPI);
 
 export default router;
