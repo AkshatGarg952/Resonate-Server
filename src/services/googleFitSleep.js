@@ -8,7 +8,10 @@ export async function fetchSleep() {
   });
 
   const endTimeMillis = Date.now();
-  const startTimeMillis = endTimeMillis - 7 * 24 * 60 * 60 * 1000;
+  const startTimeMillis = new Date(
+  new Date(endTimeMillis - 6 * 24 * 60 * 60 * 1000)
+    .setHours(0, 0, 0, 0)
+).getTime();
 
   const response = await fitness.users.dataset.aggregate({
     userId: "me",
@@ -25,27 +28,22 @@ export async function fetchSleep() {
   return response.data.bucket || [];
 }
 
-
 export function parseSleep(buckets) {
-  return buckets.map((bucket) => {
+  const sleepMap = {};
+
+  // 1️⃣ Store whatever Google Fit sends
+  for (const bucket of buckets) {
     const date = new Date(Number(bucket.startTimeMillis))
       .toISOString()
       .split("T")[0];
 
     let totalSleepMs = 0;
-
     const points = bucket.dataset?.[0]?.point || [];
 
     for (const p of points) {
       const sleepStage = p.value?.[0]?.intVal;
 
-      // Google Fit sleep stage values
-      const SLEEP_STAGES = [
-        1, // SLEEP
-        2, // LIGHT_SLEEP
-        3, // DEEP_SLEEP
-        4, // REM_SLEEP
-      ];
+      const SLEEP_STAGES = [1, 2, 3, 4]; // sleep stages only
 
       if (SLEEP_STAGES.includes(sleepStage)) {
         totalSleepMs +=
@@ -56,58 +54,23 @@ export function parseSleep(buckets) {
     const sleepHours =
       Math.round((totalSleepMs / (1000 * 60 * 60)) * 10) / 10;
 
-    return {
-      date,
-      sleepHours,
-    };
-  });
+    sleepMap[date] = sleepHours;
+  }
+
+  // 2️⃣ Force last 7 days INCLUDING today
+  const result = [];
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+
+    const key = d.toISOString().split("T")[0];
+
+    result.push({
+      date: key,
+      sleepHours: sleepMap[key] ?? 0
+    });
+  }
+
+  return result;
 }
-
-
-// import { google } from "googleapis";
-// import { oauth2Client } from "../googleClient.js";
-
-// export async function fetchSleep() {
-//   const fitness = google.fitness({
-//     version: "v1",
-//     auth: oauth2Client,
-//   });
-
-//   const response = await fitness.users.dataset.aggregate({
-//     userId: "me",
-//     requestBody: {
-//       aggregateBy: [
-//         { dataTypeName: "com.google.sleep.segment" }
-//       ],
-//       bucketByTime: { durationMillis: 86400000 }, // 1 day
-//       startTimeMillis: Date.now() - 7 * 24 * 60 * 60 * 1000,
-//       endTimeMillis: Date.now(),
-//     },
-//   });
-
-//   return response.data.bucket;
-// }
-
-
-
-// export function parseSleep(buckets) {
-//   return buckets.map((bucket) => {
-//     const date = new Date(Number(bucket.startTimeMillis))
-//       .toISOString()
-//       .split("T")[0];
-
-//     let totalSleepMs = 0;
-
-//     bucket.dataset[0]?.point?.forEach((p) => {
-//       totalSleepMs +=
-//         Number(p.endTimeNanos - p.startTimeNanos) / 1e6;
-//     });
-
-//     const sleepHours = Math.round((totalSleepMs / (1000 * 60 * 60)) * 10) / 10;
-
-//     return {
-//       date,
-//       sleepHours,
-//     };
-//   });
-// }

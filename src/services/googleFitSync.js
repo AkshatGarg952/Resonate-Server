@@ -1,4 +1,3 @@
-// services/googleFitSync.js
 import { User } from "../models/User.js";
 import { FitnessData } from "../models/FitnessData.js";
 import { oauth2Client } from "../googleClient.js";
@@ -7,7 +6,6 @@ import { fetchSteps, parseSteps } from "./googleFitSteps.js";
 import { fetchSleep, parseSleep } from "./googleFitSleep.js";
 import { fetchWorkouts, parseWorkouts } from "./googleFitWorkouts.js";
 
-// 🔥 IMPORT NORMALIZERS
 import {
   normalizeLast7Days,
   normalizeWorkoutLast7Days,
@@ -19,18 +17,26 @@ export async function syncGoogleFitForAllUsers() {
   const users = await User.find({
     fitnessProvider: "google_fit",
     fitnessConnected: true,
-  });
+  }).lean();
+
+  console.log(`👥 Syncing ${users.length} Google Fit users`);
 
   for (const user of users) {
-    try {
-      await syncSingleUser(user);
-    } catch (err) {
-      console.error(`❌ Sync failed for user ${user._id}`, err.message);
-    }
+    await syncUserSafely(user);
   }
 }
 
-/* ------------------ PER USER ------------------ */
+/* ------------------ SAFE PER USER ------------------ */
+
+async function syncUserSafely(user) {
+  try {
+    await syncSingleUser(user);
+    console.log(`✅ Synced user ${user._id}`);
+  } catch (err) {
+    console.error(`❌ User ${user._id} sync failed:`, err.message);
+  }
+}
+
 
 async function syncSingleUser(user) {
   oauth2Client.setCredentials({
@@ -39,45 +45,54 @@ async function syncSingleUser(user) {
     expiry_date: user.googleFit.expiryDate,
   });
 
-  // 🔁 Refresh token if expired
-  if (Date.now() >= user.googleFit.expiryDate) {
+  // 🔁 Refresh token safely
+  if (Date.now() >= user.googleFit.expiryDate - 60_000) {
     const { credentials } = await oauth2Client.refreshAccessToken();
 
     oauth2Client.setCredentials(credentials);
 
-    user.googleFit.accessToken = credentials.access_token;
-    user.googleFit.expiryDate = credentials.expiry_date;
-
-    await user.save();
+    await User.updateOne(
+      { _id: user._id },
+      {
+        "googleFit.accessToken": credentials.access_token,
+        "googleFit.expiryDate": credentials.expiry_date,
+      }
+    );
   }
 
   await fetchAndSaveFitnessData(user);
 }
 
-/* ------------------ CORE ------------------ */
 
 async function fetchAndSaveFitnessData(user) {
-  // 1️⃣ Fetch raw data
-  const stepsBuckets = await fetchSteps();
-  const sleepBuckets = await fetchSleep();
-  const workoutBuckets = await fetchWorkouts();
+  const [stepsBuckets, sleepBuckets, workoutBuckets] =
+    await Promise.allSettled([
+      fetchSteps(),
+      fetchSleep(),
+      fetchWorkouts(),
+    ]);
 
-  // 2️⃣ Parse raw data
-  const parsedSteps = parseSteps(stepsBuckets);
-  const parsedSleep = parseSleep(sleepBuckets);
-  const parsedWorkouts = parseWorkouts(workoutBuckets);
+  const parsedSteps =
+    stepsBuckets.status === "fulfilled"
+      ? parseSteps(stepsBuckets.value)
+      : [];
 
-  // 3️⃣ 🔥 NORMALIZE TO EXACT 7 DAYS
+  const parsedSleep =
+    sleepBuckets.status === "fulfilled"
+      ? parseSleep(sleepBuckets.value)
+      : [];
+
+  const parsedWorkouts =
+    workoutBuckets.status === "fulfilled"
+      ? parseWorkouts(workoutBuckets.value)
+      : [];
+
   const stepsHistory = normalizeLast7Days(parsedSteps, "steps");
   const sleepHistory = normalizeLast7Days(parsedSleep, "sleepHours");
   const workoutHistory = normalizeWorkoutLast7Days(parsedWorkouts);
 
-  // 4️⃣ Save
-  await FitnessData.findOneAndUpdate(
-    {
-      userId: user._id,
-      provider: "google_fit",
-    },
+  await FitnessData.updateOne(
+    { userId: user._id, provider: "google_fit" },
     {
       $set: {
         stepsHistory,
@@ -86,8 +101,6 @@ async function fetchAndSaveFitnessData(user) {
         lastSyncTime: new Date(),
       },
     },
-    { upsert: true, new: true }
+    { upsert: true }
   );
-
-  console.log("Job Completed!");
 }
