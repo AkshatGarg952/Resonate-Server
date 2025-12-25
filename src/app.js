@@ -6,11 +6,14 @@ import diagnosticsRoutes from "./routes/diagnostics.routes.js";
 import fitRoutes from "./routes/fitConnect.routes.js"
 import { startFitnessSync } from "./cron/fitnessSync.js";
 import cookieParser from "cookie-parser";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const app = express();
 
 app.use(cors({
-  origin: "http://localhost:5173", // EXACT frontend URL
+  origin: process.env.CLIENT_URL,
   credentials: true
 }));
 
