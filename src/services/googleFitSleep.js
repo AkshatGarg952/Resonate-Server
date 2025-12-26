@@ -31,7 +31,6 @@ export async function fetchSleep() {
 export function parseSleep(buckets) {
   const sleepMap = {};
 
-  // 1️⃣ Store whatever Google Fit sends
   for (const bucket of buckets) {
     const date = new Date(Number(bucket.startTimeMillis))
       .toISOString()
@@ -43,7 +42,7 @@ export function parseSleep(buckets) {
     for (const p of points) {
       const sleepStage = p.value?.[0]?.intVal;
 
-      const SLEEP_STAGES = [1, 2, 3, 4]; // sleep stages only
+      const SLEEP_STAGES = [1, 2, 3, 4];
 
       if (SLEEP_STAGES.includes(sleepStage)) {
         totalSleepMs +=
@@ -57,7 +56,6 @@ export function parseSleep(buckets) {
     sleepMap[date] = sleepHours;
   }
 
-  // 2️⃣ Force last 7 days INCLUDING today
   const result = [];
 
   for (let i = 6; i >= 0; i--) {

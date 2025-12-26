@@ -4,7 +4,6 @@ import { syncGoogleFitForAllUsers } from "../services/googleFitSync.js";
 let isRunning = false;
 
 export function startFitnessSync() {
-  // 🕑 Daily at 2 AM (low traffic + Google Fit safe)
   cron.schedule("0 2 * * *", async () => {
     if (isRunning) {
       console.warn("⚠️ Fitness sync already running, skipping...");

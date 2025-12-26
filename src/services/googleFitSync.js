@@ -11,7 +11,6 @@ import {
   normalizeWorkoutLast7Days,
 } from "../utils/normalizeLast7Days.js";
 
-/* ------------------ ENTRY ------------------ */
 
 export async function syncGoogleFitForAllUsers() {
   const users = await User.find({
@@ -26,14 +25,13 @@ export async function syncGoogleFitForAllUsers() {
   }
 }
 
-/* ------------------ SAFE PER USER ------------------ */
 
 async function syncUserSafely(user) {
   try {
     await syncSingleUser(user);
-    console.log(`✅ Synced user ${user._id}`);
+    console.log(`Synced user ${user._id}`);
   } catch (err) {
-    console.error(`❌ User ${user._id} sync failed:`, err.message);
+    console.error(`User ${user._id} sync failed:`, err.message);
   }
 }
 
@@ -45,7 +43,6 @@ async function syncSingleUser(user) {
     expiry_date: user.googleFit.expiryDate,
   });
 
-  // 🔁 Refresh token safely
   if (Date.now() >= user.googleFit.expiryDate - 60_000) {
     const { credentials } = await oauth2Client.refreshAccessToken();
 

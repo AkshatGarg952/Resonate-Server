@@ -4,10 +4,8 @@ import { redirectToGoogleFit, handleGoogleFitCallback, getGoogleFitData } from "
 
 const router = express.Router();
 
-// Start Google Fit OAuth
 router.get("/google", isAuthenticated, redirectToGoogleFit);
 
-// Google OAuth callback
 router.get("/google/callback", handleGoogleFitCallback);
 
 router.get("/getGoogleFitData", isAuthenticated, getGoogleFitData);

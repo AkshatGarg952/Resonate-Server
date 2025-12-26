@@ -31,7 +31,6 @@ export async function fetchSteps() {
 export function parseSteps(buckets) {
   const stepMap = {};
 
-  // 1️⃣ Store whatever Google Fit sends
   for (const bucket of buckets) {
     const date = new Date(Number(bucket.startTimeMillis))
       .toISOString()
@@ -47,7 +46,6 @@ export function parseSteps(buckets) {
     stepMap[date] = steps;
   }
 
-  // 2️⃣ Force last 7 days INCLUDING today
   const result = [];
 
   for (let i = 6; i >= 0; i--) {
@@ -64,23 +62,3 @@ export function parseSteps(buckets) {
 
   return result;
 }
-
-
-
-// export function parseSteps(buckets) {
-//   return buckets.map((bucket) => {
-//     const date = new Date(Number(bucket.startTimeMillis))
-//       .toISOString()
-//       .split("T")[0];
-
-//     let steps = 0;
-
-//     const points = bucket.dataset?.[0]?.point || [];
-
-//     for (const point of points) {
-//       steps += point.value?.[0]?.intVal || 0;
-//     }
-
-//     return { date, steps };
-//   });
-// }

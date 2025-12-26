@@ -1,12 +1,9 @@
 import mongoose from "mongoose";
 
-/* ---------- Sub-schemas ---------- */
-
-// Steps per day
 const stepsSchema = new mongoose.Schema(
   {
     date: {
-      type: String, // YYYY-MM-DD
+      type: String,
       required: true
     },
     steps: {
@@ -17,11 +14,10 @@ const stepsSchema = new mongoose.Schema(
   { _id: false }
 );
 
-// Sleep per day
 const sleepSchema = new mongoose.Schema(
   {
     date: {
-      type: String, // YYYY-MM-DD
+      type: String,
       required: true
     },
     sleepHours: {
@@ -32,7 +28,6 @@ const sleepSchema = new mongoose.Schema(
   { _id: false }
 );
 
-// Workout item
 const workoutSchema = new mongoose.Schema(
   {
     type: String,
@@ -42,11 +37,10 @@ const workoutSchema = new mongoose.Schema(
   { _id: false }
 );
 
-// Workouts per day
 const dailyWorkoutSchema = new mongoose.Schema(
   {
     date: {
-      type: String, // YYYY-MM-DD
+      type: String,
       required: true
     },
     workouts: {
@@ -56,8 +50,6 @@ const dailyWorkoutSchema = new mongoose.Schema(
   },
   { _id: false }
 );
-
-/* ---------- Main Schema ---------- */
 
 const fitnessDataSchema = new mongoose.Schema(
   {
@@ -75,17 +67,17 @@ const fitnessDataSchema = new mongoose.Schema(
     },
 
     stepsHistory: {
-      type: [stepsSchema], // last 7 days
+      type: [stepsSchema], 
       default: []
     },
 
     sleepHistory: {
-      type: [sleepSchema], // last 7 days
+      type: [sleepSchema],
       default: []
     },
 
     workoutHistory: {
-      type: [dailyWorkoutSchema], // last 7 days
+      type: [dailyWorkoutSchema],
       default: []
     },
 

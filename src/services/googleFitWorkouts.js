@@ -45,7 +45,6 @@ const VALID_WORKOUT_CODES = new Set([
 export function parseWorkouts(buckets) {
   const workoutMap = {};
 
-  // 1️⃣ Store whatever Google Fit sends
   for (const bucket of buckets) {
     const date = new Date(Number(bucket.startTimeMillis))
       .toISOString()
@@ -75,7 +74,6 @@ export function parseWorkouts(buckets) {
     }
   }
 
-  // 2️⃣ Force last 7 days INCLUDING today
   const result = [];
 
   for (let i = 6; i >= 0; i--) {

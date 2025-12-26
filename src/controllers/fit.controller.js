@@ -6,9 +6,6 @@ import { fetchSteps, parseSteps } from "../services/googleFitSteps.js";
 import { fetchSleep, parseSleep } from "../services/googleFitSleep.js";
 import { fetchWorkouts, parseWorkouts } from "../services/googleFitWorkouts.js";
 
-/**
- * Redirect user to Google Fit OAuth consent screen
- */
 export const redirectToGoogleFit = (req, res) => {
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
@@ -23,9 +20,6 @@ export const redirectToGoogleFit = (req, res) => {
   res.redirect(url);
 };
 
-/**
- * Handle Google Fit OAuth callback
- */
 export const handleGoogleFitCallback = async (req, res) => {
   try {
     const { code, state: firebaseUid } = req.query;
@@ -34,17 +28,15 @@ export const handleGoogleFitCallback = async (req, res) => {
       return res.status(400).send("Invalid OAuth callback");
     }
 
-    // Exchange code for tokens
+ 
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
-    // Find user
     const user = await User.findOne({ firebaseUid });
     if (!user) {
       return res.status(401).send("User not found");
     }
 
-    // Save Google Fit credentials
     user.googleFit = {
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
@@ -55,7 +47,6 @@ export const handleGoogleFitCallback = async (req, res) => {
 
     await user.save();
 
-    // Fetch + parse fitness data
     const stepBuckets = await fetchSteps(tokens.access_token);
     const stepsHistory = parseSteps(stepBuckets);
 
@@ -65,7 +56,6 @@ export const handleGoogleFitCallback = async (req, res) => {
     const workoutBuckets = await fetchWorkouts(tokens.access_token);
     const workoutHistory = parseWorkouts(workoutBuckets);
 
-    // Store in FitnessData
     await FitnessData.findOneAndUpdate(
       {
         userId: user._id,
@@ -85,7 +75,6 @@ export const handleGoogleFitCallback = async (req, res) => {
       }
     );
 
-    // res.send("Google Fit connected successfully");
     return res.redirect(
       `${process.env.CLIENT_URL}/dashboard`
     );
