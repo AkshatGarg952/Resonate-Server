@@ -1,5 +1,4 @@
 import { Diagnostics } from "../models/Diagnostics.js";
-import {User} from "../models/User.js";  
 import cloudinary from "../config/cloudinary.js";
 import axios from "axios";
 import sendReportReady from "../services/notification.js";
@@ -51,7 +50,7 @@ export const uploadDiagnostics = async (req, res) => {
     return res.status(400).json({ message: "PDF file required" });
   }
 
-  const userId = req.user._id;
+  const userId = req.firebaseUid;
 
   try {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -125,7 +124,7 @@ export const uploadDiagnostics = async (req, res) => {
 
 export const getLatestDiagnostics = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.firebaseUid;
 
     const latest = await Diagnostics.findOne({ userId })
   .sort({ createdAt: -1 })
@@ -141,12 +140,13 @@ export const getLatestDiagnostics = async (req, res) => {
 
 export const getDiagnosticsHistory = async (req, res) => {
   try {
-    const userId = req.user._id;
 
+    console.log("request aayi hai aayi hai!");
+        const userId = req.firebaseUid;
     const history = await Diagnostics.find({ userId })
     .sort({ createdAt: -1 })
     .select("biomarkers status pdfUrl updatedAt");
-    
+    console.log("history", history);
     return res.json(history);
   } catch (error) {
     return res.status(500).json({ error: error.message });
