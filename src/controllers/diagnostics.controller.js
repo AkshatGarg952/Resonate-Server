@@ -50,7 +50,7 @@ export const uploadDiagnostics = async (req, res) => {
     return res.status(400).json({ message: "PDF file required" });
   }
 
-  const userId = req.firebaseUid;
+  const userId = req.user.firebaseUid;
 
   try {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -124,7 +124,7 @@ export const uploadDiagnostics = async (req, res) => {
 
 export const getLatestDiagnostics = async (req, res) => {
   try {
-    const userId = req.firebaseUid;
+    const userId = req.user.firebaseUid;
 
     const latest = await Diagnostics.findOne({ userId })
   .sort({ createdAt: -1 })
@@ -142,7 +142,7 @@ export const getDiagnosticsHistory = async (req, res) => {
   try {
 
     console.log("request aayi hai aayi hai!");
-        const userId = req.firebaseUid;
+        const userId = req.user.firebaseUid;
     const history = await Diagnostics.find({ userId })
     .sort({ createdAt: -1 })
     .select("biomarkers status pdfUrl updatedAt");
