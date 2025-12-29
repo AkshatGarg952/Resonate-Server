@@ -3,54 +3,22 @@ import cloudinary from "../config/cloudinary.js";
 import axios from "axios";
 import sendReportReady from "../services/notification.js";
 import dotenv from "dotenv";
+import { SUPPORTED_BIOMARKERS } from "../config/supportedBiomarkers.js";
+import { evaluateBiomarkers } from "../services/evaluateBiomarkers.js";
+import { mapToCategories } from "../services/mapToCategories.js";
 
 dotenv.config();
 
-function makeBiomarker(biomarker, value) {
-  if (value == null) {
-    return { value: null, status: "bad" };
-  }
-
-  return {
-    value,
-    status: calcStatus(biomarker, value)
-  };
-}
-
-function calcStatus(biomarker, value) {
-  const [low, high] = RANGES[biomarker];
-  if (value < low || value > high){
-    return "bad";
-  }
-  else{
-    return "good";
-  }
-}
-
-const RANGES = {
-  hemoglobin: [12, 16],
-  fastingGlucose: [70, 99],
-  hdl: [40, 200],
-  ldl: [0, 100],
-  triglycerides: [0, 150],
-  tsh: [0.4, 4.0],
-  vitaminD: [30, 100],
-  alt: [7, 56],
-  ast: [10, 40],
-};
-
-
 export const uploadDiagnostics = async (req, res) => {
-  
   if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+    return res.status(401).json({ message: "Unauthorized" });
+  }
 
   if (!req.file) {
     return res.status(400).json({ message: "PDF file required" });
   }
 
-  const userId = req.user.firebaseUid;
+  const user = req.user;
 
   try {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -60,55 +28,65 @@ export const uploadDiagnostics = async (req, res) => {
         format: "pdf",
       },
       async (error, result) => {
+        if (error) {
+          return res.status(500).json({ message: "Cloudinary upload failed" });
+        }
+
+        const record = await Diagnostics.create({
+          userId: user.firebaseUid,
+          pdfUrl: result.secure_url,
+          status: "pending",
+          metadata: {
+            testTime: req.body.testTime || null,
+            reportDate: new Date(),
+          },
+        });
+
         try {
-          if (error) {
-            return res.status(500).json({ message: "Cloudinary upload failed" });
+          
+          const parsingResponse = await axios.post(
+            `${process.env.MICROSERVICE_URL}/parse-report`,
+            {
+              pdfUrl: result.secure_url,
+              biomarkers: SUPPORTED_BIOMARKERS,
+            }
+          );
+
+          const extractedValues = parsingResponse.data.values;
+
+          if (!extractedValues || typeof extractedValues !== "object") {
+            throw new Error("Invalid extraction response from AI service");
           }
 
-          const pdfUrl = result.secure_url;
-
-          const record = await Diagnostics.create({
-            userId,
-            pdfUrl,
-            status: "pending",
+          //Evaluate biomarkers (medical logic)
+          const evaluated = evaluateBiomarkers({
+            extractedValues,
+            user,
+            metadata: record.metadata,
           });
 
-          try {
-            const parsingResponse = await axios.post(
-              `${process.env.MICROSERVICE_URL}/parse-report`,
-              { pdfUrl }
-            );
+          // Map evaluated biomarkers to categories
+          const categorized = mapToCategories(evaluated);
 
-            console.log("parsing", parsingResponse);
+          // Save final result
+          record.biomarkers = categorized;
+          record.status = "completed";
+          await record.save();
 
-            record.biomarkers = parsingResponse.data.biomarkers;
-            record.status = "completed";
-            await record.save();
-
-            return res.json({
-              message: "Report uploaded and parsed successfully",
-              diagnostics: record,
-            });
-
-          } catch (err) {
-            console.log(err);
-            record.status = "failed";
-            await record.save();
-
-            if (err.response) {
-              return res.status(err.response.status).json({
-                message: err.response.data.detail,
-              });
-            }
-
-            return res.status(500).json({
-              message: "Microservice unreachable",
-            });
-          }
+          return res.json({
+            message: "Report uploaded and processed successfully",
+            diagnostics: record,
+          });
 
         } catch (err) {
-          console.error("Internal error:", err);
-          return res.status(500).json({ message: "Internal server error" });
+          console.error("Parsing error:", err);
+
+          record.status = "failed";
+          await record.save();
+
+          return res.status(500).json({
+            message: "Diagnostics parsing failed",
+          });
         }
       }
     );

@@ -21,33 +21,85 @@ const setAuthCookie = (res, token) => {
 
 export const registerUser = async (req, res) => {
   try {
-    const { uid, email, name } = req.user;
-    const { age, weight, goal, phone } = req.body;
+    const { uid, email } = req.user;
+    
+    const {
+      name,
+      gender,
+      dateOfBirth,
+      heightCm,
+      weightKg,
+      dietType,
+      goals,
+      phone,
+      hasMedicalCondition,
+      medicalConditions,
+      menstrualProfile,
+    } = req.body;
 
     const existingUser = await User.findOne({ firebaseUid: uid });
     if (existingUser) {
       return res.json({ message: "User already registered!" });
     }
 
-    const user = await User.create({
+    // Build user object safely
+    const userPayload = {
       firebaseUid: uid,
       email,
       name,
+      gender,
       phone,
-      age,
-      weight,
-      goals: goal,
-    });
+      dateOfBirth,
+      heightCm,
+      weightKg,
+      dietType,
+      goals,
+      hasMedicalCondition: !!hasMedicalCondition,
+    };
+
+    if (
+      hasMedicalCondition &&
+      Array.isArray(medicalConditions) &&
+      medicalConditions.length > 0
+    ) {
+      userPayload.medicalConditions = medicalConditions;
+    }
+
+    // Menstrual profile (female only)
+    if (
+      gender === "female" &&
+      menstrualProfile &&
+      typeof menstrualProfile === "object"
+    ) {
+      userPayload.menstrualProfile = {};
+
+      if (menstrualProfile.cycleLengthDays) {
+        userPayload.menstrualProfile.cycleLengthDays =
+          Number(menstrualProfile.cycleLengthDays);
+      }
+
+      if (menstrualProfile.lastPeriodDate) {
+        userPayload.menstrualProfile.lastPeriodDate = new Date(
+          menstrualProfile.lastPeriodDate
+        );
+      }
+
+      if (menstrualProfile.phase) {
+        userPayload.menstrualProfile.phase = menstrualProfile.phase;
+      }
+    }
+
+    const user = await User.create(userPayload);
 
     const token = generateToken(user._id);
     setAuthCookie(res, token);
 
     return res.json({ message: "User Registered", user });
-
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
 };
+
 
 
 export const loginUser = async (req, res) => {
@@ -69,3 +121,4 @@ export const loginUser = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+

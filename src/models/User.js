@@ -12,19 +12,33 @@ const userSchema = new mongoose.Schema(
       enum: ["male", "female", "other"]
     },
 
+    dateOfBirth: {
+      type: Date,
+      required: true
+    },
+
+    heightCm: Number,
+    weightKg: Number,
+
+    menstrualProfile: {
+      cycleLengthDays: Number,
+      lastPeriodDate: Date,
+      phase: {
+        type: String,
+        enum: ["follicular", "ovulatory", "luteal"]
+      }
+    },
+
     fitnessProvider: {
       type: String,
       enum: ["google_fit", "apple_health"],
     },
+    
 
     fitnessConnected: {
       type: Boolean
     },
     
-    age: Number,
-    height: Number,
-    weight: Number,
-
 
     goals: String,  
 
