@@ -1,11 +1,11 @@
-import { Diagnostics } from "../models/Diagnostics.js";
+// import { Diagnostics } from "../models/Diagnostics.js";
 import cloudinary from "../config/cloudinary.js";
 import axios from "axios";
 import sendReportReady from "../services/notification.js";
 import dotenv from "dotenv";
-import { SUPPORTED_BIOMARKERS } from "../config/supportedBiomarkers.js";
-import { evaluateBiomarkers } from "../services/evaluateBiomarkers.js";
-import { mapToCategories } from "../services/mapToCategories.js";
+
+// import { Diagnostics } from "../models/Diagnostics.js";
+
 
 dotenv.config();
 
@@ -13,7 +13,7 @@ export const uploadDiagnostics = async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
-
+  
   if (!req.file) {
     return res.status(400).json({ message: "PDF file required" });
   }

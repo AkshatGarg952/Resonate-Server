@@ -1,4 +1,6 @@
-const categorizedBiomarkersSchema = new mongoose.Schema(
+import { biomarkerSchema } from "./biomarker.js";
+
+export const categorizedBiomarkersSchema = new mongoose.Schema(
   {
     generalHealth: {
       hemoglobin: biomarkerSchema,
