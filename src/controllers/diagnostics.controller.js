@@ -8,6 +8,27 @@ import { processBiomarkers } from "../utils/biomarkerReference.js";
 
 dotenv.config();
 
+const BIOMARKERS_LIST = [
+  "Vitamin B12",
+  "Vitamin D",
+  "HS-CRP",
+  "Homocysteine",
+  "HbA1c",
+  "Cortisol",
+  "Serum Creatinine",
+  "Uric Acid",
+  "Calcium",
+  "Ferritin",
+  "Magnesium",
+  "Iron",
+  "Fasting Glucose",
+  "TSH",
+  "Free T3",
+  "Hemoglobin",
+  "Red Blood Cell Count"
+];
+
+
 
 export const uploadDiagnostics = async (req, res) => {
   
@@ -50,11 +71,13 @@ export const uploadDiagnostics = async (req, res) => {
             // Send PDF URL to microservice for parsing
             const parsingResponse = await axios.post(
               `${process.env.MICROSERVICE_URL}/parse-report`,
-              { pdfUrl }
+              { pdfUrl,
+              biomarkers: BIOMARKERS_LIST
+              }
             );
-
+            
             console.log("Parsing response:", parsingResponse.data);
-
+            
             // Get raw biomarkers from microservice response
             const rawBiomarkers = parsingResponse.data.biomarkers || {};
             
@@ -136,10 +159,7 @@ export const getLatestDiagnostics = async (req, res) => {
     const latest = await Diagnostics.findOne({ userId })
       .sort({ createdAt: -1 })
       .select("biomarkers biomarkersByCategory status pdfUrl updatedAt createdAt");
-
-    if (!latest) {
-      return res.status(404).json({ message: "No diagnostics found" });
-    }
+    
 
     return res.json(latest);
   } catch (error) {
