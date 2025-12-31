@@ -1,10 +1,14 @@
 import mongoose from "mongoose";
 
 const biomarkerSchema = new mongoose.Schema({
-  value: { type: Number, required: true },
+  value: { type: Number, default: null },
+  isAvailable: {
+  type: Boolean,
+  default: true
+},
   status: {
     type: String,
-    enum: ["good", "bad"],
+    enum: ["good", "bad", "unavailable", "unknown"],
     default: "good"
   },
   unit: { type: String, default: null },
@@ -18,17 +22,13 @@ const diagnosticsSchema = new mongoose.Schema(
     userId: { type: String, required: true },
     pdfUrl: { type: String, required: true },
     
-    // Store biomarkers in two formats:
-    // 1. All biomarkers in a flat structure (for easy access)
-    // Using Map type - Mongoose will handle conversion from plain objects
     biomarkers: {
       type: Map,
       of: biomarkerSchema,
       default: {}
     },
     
-    // 2. Category-wise organization (for frontend display)
-    // Using Mixed type for flexibility with nested structures
+
     biomarkersByCategory: {
       type: mongoose.Schema.Types.Mixed,
       default: {}

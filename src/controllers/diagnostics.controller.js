@@ -40,7 +40,7 @@ export const uploadDiagnostics = async (req, res) => {
     return res.status(400).json({ message: "PDF file required" });
   }
 
-  const userId = req.user.firebaseUid;
+  const userId = req.user.firebaseUid
 
   try {
     // Get user's gender for biomarker range validation
@@ -79,7 +79,7 @@ export const uploadDiagnostics = async (req, res) => {
             console.log("Parsing response:", parsingResponse.data);
             
             // Get raw biomarkers from microservice response
-            const rawBiomarkers = parsingResponse.data.biomarkers || {};
+            const rawBiomarkers = parsingResponse.data.values || {};
             
             if (!rawBiomarkers || Object.keys(rawBiomarkers).length === 0) {
               record.status = "failed";
@@ -88,7 +88,7 @@ export const uploadDiagnostics = async (req, res) => {
                 message: "No biomarkers found in the report" 
               });
             }
-
+            
             // Process biomarkers category-wise with gender-based validation
             const processed = processBiomarkers(rawBiomarkers, userGender, null);
             

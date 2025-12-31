@@ -295,54 +295,125 @@ export function checkBiomarkerStatus(biomarkerKey, value, gender = null, timeOfD
 /**
  * Process raw biomarkers from microservice and categorize them
  */
+// export function processBiomarkers(rawBiomarkers, gender = null, timeOfDay = null) {
+//   const categorized = {};
+//   const processed = {};
+  
+//   // Initialize categories
+//   Object.values(BIOMARKER_CATEGORIES).forEach(category => {
+//     categorized[category] = {};
+//   });
+  
+//   // Process each biomarker
+//   for (const [key, value] of Object.entries(rawBiomarkers)) {
+//     const normalizedKey = normalizeBiomarkerName(key);
+//     const biomarker = BIOMARKER_RANGES[normalizedKey];
+    
+//     if (biomarker) {
+//       const statusResult = checkBiomarkerStatus(normalizedKey, value, gender, timeOfDay);
+      
+//       const biomarkerData = {
+//         value: value,
+//         status: statusResult.status,
+//         unit: biomarker.unit,
+//         category: biomarker.category,
+//         reason: statusResult.reason || null,
+//         categoryLabel: statusResult.category || null
+//       };
+      
+//       processed[normalizedKey] = biomarkerData;
+      
+//       // Add to category
+//       if (!categorized[biomarker.category]) {
+//         categorized[biomarker.category] = {};
+//       }
+//       categorized[biomarker.category][normalizedKey] = biomarkerData;
+//     } else {
+//       // Unknown biomarker - store with status "bad"
+//       processed[normalizedKey] = {
+//         value: value,
+//         status: "bad",
+//         unit: null,
+//         category: null,
+//         reason: "Biomarker not in reference database"
+//       };
+//     }
+//   }
+  
+//   return {
+//     all: processed,
+//     byCategory: categorized
+//   };
+// }
+
+
+
 export function processBiomarkers(rawBiomarkers, gender = null, timeOfDay = null) {
   const categorized = {};
   const processed = {};
-  
-  // Initialize categories
+
+  // Initialize all categories
   Object.values(BIOMARKER_CATEGORIES).forEach(category => {
     categorized[category] = {};
   });
-  
-  // Process each biomarker
+
   for (const [key, value] of Object.entries(rawBiomarkers)) {
     const normalizedKey = normalizeBiomarkerName(key);
     const biomarker = BIOMARKER_RANGES[normalizedKey];
-    
-    if (biomarker) {
-      const statusResult = checkBiomarkerStatus(normalizedKey, value, gender, timeOfDay);
-      
-      const biomarkerData = {
-        value: value,
-        status: statusResult.status,
-        unit: biomarker.unit,
-        category: biomarker.category,
-        reason: statusResult.reason || null,
-        categoryLabel: statusResult.category || null
-      };
-      
-      processed[normalizedKey] = biomarkerData;
-      
-      // Add to category
-      if (!categorized[biomarker.category]) {
-        categorized[biomarker.category] = {};
-      }
-      categorized[biomarker.category][normalizedKey] = biomarkerData;
-    } else {
-      // Unknown biomarker - store with status "bad"
+
+    // If biomarker not in reference DB
+    if (!biomarker) {
       processed[normalizedKey] = {
-        value: value,
-        status: "bad",
+        value,
+        isAvailable: value !== null,
+        status: "unknown",
         unit: null,
-        category: null,
-        reason: "Biomarker not in reference database"
+        categories: [],
+        reason: "Biomarker not in reference database",
+        categoryLabel: null
       };
+      continue;
     }
+
+    // Handle availability
+    const isAvailable = value !== null && value !== undefined;
+
+    let statusResult;
+    if (!isAvailable) {
+      statusResult = {
+        status: "unavailable",
+        reason: "Not tested",
+        category: null
+      };
+    } else {
+      statusResult = checkBiomarkerStatus(
+        normalizedKey,
+        value,
+        gender,
+        timeOfDay
+      );
+    }
+
+    const biomarkerData = {
+      value: isAvailable ? value : null,
+      isAvailable,
+      status: statusResult.status,
+      unit: biomarker.unit,
+      categories: biomarker.categories,
+      reason: statusResult.reason || null,
+      categoryLabel: statusResult.category || null
+    };
+
+    processed[normalizedKey] = biomarkerData;
+
+    // Add biomarker to all its categories
+    biomarker.categories.forEach(category => {
+      categorized[category][normalizedKey] = biomarkerData;
+    });
   }
-  
+
   return {
     all: processed,
     byCategory: categorized
   };
 }
-
