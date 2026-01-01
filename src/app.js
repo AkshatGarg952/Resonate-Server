@@ -4,6 +4,7 @@ import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import diagnosticsRoutes from "./routes/diagnostics.routes.js";
 import fitRoutes from "./routes/fitConnect.routes.js"
+import coachRoutes from "./routes/coachLead.routes.js"
 import { startFitnessSync } from "./cron/fitnessSync.js";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
@@ -37,6 +38,7 @@ app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
 app.use("/diagnostics", diagnosticsRoutes);
 app.use("/fit", fitRoutes);
+app.use("/coach", coachRoutes);
 
 startFitnessSync();
 
