@@ -28,7 +28,7 @@ export const handleGoogleFitCallback = async (req, res) => {
       return res.status(400).send("Invalid OAuth callback");
     }
 
- 
+
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
@@ -46,10 +46,10 @@ export const handleGoogleFitCallback = async (req, res) => {
     user.fitnessConnected = true;
 
     await user.save();
-    
+
     const stepBuckets = await fetchSteps(tokens.access_token);
     const stepsHistory = parseSteps(stepBuckets);
-    
+
     const sleepBuckets = await fetchSleep(tokens.access_token);
     const sleepHistory = parseSleep(sleepBuckets);
 
@@ -84,29 +84,51 @@ export const handleGoogleFitCallback = async (req, res) => {
   }
 };
 
-export const getGoogleFitData = async(req, res) => {
+export const getGoogleFitData = async (req, res) => {
 
-    try{
-        if (!req.user) return res.status(404).json({ message: "User not found" });
+  try {
+    if (!req.user) return res.status(404).json({ message: "User not found" });
 
-        const userId = req.user._id;
+    const userId = req.user._id;
 
-        const fitness = await FitnessData.findOne( 
-            { userId, provider: "google_fit" },
-            {
-                _id: 0,
-                stepsHistory: 1,
-                sleepHistory: 1,
-                workoutHistory: 1,
-                lastSyncTime: 1
-            }
-        );
+    const fitness = await FitnessData.findOne(
+      { userId, provider: "google_fit" },
+      {
+        _id: 0,
+        stepsHistory: 1,
+        sleepHistory: 1,
+        workoutHistory: 1,
+        lastSyncTime: 1,
+        stepGoal: 1
+      }
+    );
 
-        console.log(fitness);
-        return res.json(fitness);
-    }
+    console.log(fitness);
+    return res.json(fitness);
+  }
 
-    catch(error){
-        return res.status(500).json({ error: error.message });
-    }
+  catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
 }
+
+export const updateStepGoal = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { stepGoal } = req.body;
+
+    if (stepGoal === undefined) return res.status(400).json({ message: "Step goal required" });
+
+    const fitness = await FitnessData.findOneAndUpdate(
+      { userId, provider: "google_fit" },
+      { $set: { stepGoal } },
+      { new: true, upsert: true } // Upsert in case they haven't synced yet but want to set goal? 
+      // Actually provider google_fit implies they connected. 
+      // If not connected, this might create a hollow doc. Acceptable.
+    );
+
+    res.json({ stepGoal: fitness.stepGoal });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

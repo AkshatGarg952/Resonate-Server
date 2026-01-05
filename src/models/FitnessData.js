@@ -51,6 +51,24 @@ const dailyWorkoutSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const waterSchema = new mongoose.Schema(
+  {
+    date: {
+      type: String,
+      required: true
+    },
+    amountMl: {
+      type: Number,
+      default: 0
+    },
+    goalMl: {
+      type: Number,
+      default: 0
+    }
+  },
+  { _id: false }
+);
+
 const fitnessDataSchema = new mongoose.Schema(
   {
     userId: {
@@ -62,12 +80,12 @@ const fitnessDataSchema = new mongoose.Schema(
 
     provider: {
       type: String,
-      enum: ["google_fit", "apple_health"],
+      enum: ["google_fit", "apple_health", "resonate"],
       required: true
     },
 
     stepsHistory: {
-      type: [stepsSchema], 
+      type: [stepsSchema],
       default: []
     },
 
@@ -81,8 +99,18 @@ const fitnessDataSchema = new mongoose.Schema(
       default: []
     },
 
+    waterHistory: {
+      type: [waterSchema],
+      default: []
+    },
+
     lastSyncTime: {
       type: Date
+    },
+
+    stepGoal: {
+      type: Number,
+      default: 0
     }
   },
   { timestamps: true }
