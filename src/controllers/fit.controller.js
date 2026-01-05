@@ -46,10 +46,10 @@ export const handleGoogleFitCallback = async (req, res) => {
     user.fitnessConnected = true;
 
     await user.save();
-
+    
     const stepBuckets = await fetchSteps(tokens.access_token);
     const stepsHistory = parseSteps(stepBuckets);
-
+    
     const sleepBuckets = await fetchSleep(tokens.access_token);
     const sleepHistory = parseSleep(sleepBuckets);
 
