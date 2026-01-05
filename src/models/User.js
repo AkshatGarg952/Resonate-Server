@@ -20,28 +20,34 @@ const userSchema = new mongoose.Schema(
     fitnessConnected: {
       type: Boolean
     },
-    
+
     age: Number,
     height: Number,
     weight: Number,
 
 
-    goals: String,  
+    goals: String,
 
     dietType: {
       type: String,
       enum: ["vegetarian", "eggetarian", "non_vegetarian"],
     },
 
-      googleFit: {
-    accessToken: String,
-    refreshToken: String,
-    expiryDate: Number
-  },
+    googleFit: {
+      accessToken: String,
+      refreshToken: String,
+      expiryDate: Number
+    },
 
-  
+
     hasMedicalCondition: { type: Boolean, default: false },
     medicalConditions: [String],
+
+    menstrualProfile: {
+      cycleLengthDays: Number,
+      lastPeriodDate: Date,
+      phase: String
+    }
   },
   { timestamps: true }
 );
