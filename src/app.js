@@ -7,6 +7,7 @@ import fitRoutes from "./routes/fitConnect.routes.js"
 import waterRoutes from "./routes/water.routes.js"
 import coachRoutes from "./routes/coachLead.routes.js"
 import workoutRoutes from "./routes/workout.routes.js"
+import nutritionRoutes from "./routes/nutrition.routes.js"
 import { startFitnessSync } from "./cron/fitnessSync.js";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
@@ -43,6 +44,7 @@ app.use("/fit", fitRoutes);
 app.use("/water", waterRoutes);
 app.use("/coach", coachRoutes);
 app.use("/workout", workoutRoutes);
+app.use("/nutrition", nutritionRoutes);
 
 startFitnessSync();
 

@@ -47,7 +47,10 @@ const userSchema = new mongoose.Schema(
       cycleLengthDays: Number,
       lastPeriodDate: Date,
       phase: String
-    }
+    },
+
+    dailyMealPlan: { type: Object, default: null },
+    mealPlanDate: { type: Date, default: null }
   },
   { timestamps: true }
 );
