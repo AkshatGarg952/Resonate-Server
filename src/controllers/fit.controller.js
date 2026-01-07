@@ -17,7 +17,9 @@ export const redirectToGoogleFit = (req, res) => {
     state: req.user.firebaseUid,
   });
 
-  res.redirect(url);
+  // Return URL as JSON instead of redirecting
+  // This allows client to fetch with credentials, then navigate
+  res.json({ url });
 };
 
 export const handleGoogleFitCallback = async (req, res) => {
