@@ -10,9 +10,6 @@ export const generateWorkout = async (req, res) => {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
-        // Call Microservice
-        // Assuming Microservice is running locally on port 10000
-        // In production, use an environment variable
         const MICROSERVICE_URL = process.env.MICROSERVICE_URL || "http://127.0.0.1:10000";
 
         // Extract profile details if available

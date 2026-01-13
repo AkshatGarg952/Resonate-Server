@@ -17,8 +17,7 @@ export const redirectToGoogleFit = (req, res) => {
     state: req.user.firebaseUid,
   });
 
-  // Return URL as JSON instead of redirecting
-  // This allows client to fetch with credentials, then navigate
+  
   res.json({ url });
 };
 
@@ -124,9 +123,7 @@ export const updateStepGoal = async (req, res) => {
     const fitness = await FitnessData.findOneAndUpdate(
       { userId, provider: "google_fit" },
       { $set: { stepGoal } },
-      { new: true, upsert: true } // Upsert in case they haven't synced yet but want to set goal? 
-      // Actually provider google_fit implies they connected. 
-      // If not connected, this might create a hollow doc. Acceptable.
+      { new: true, upsert: true } 
     );
 
     res.json({ stepGoal: fitness.stepGoal });

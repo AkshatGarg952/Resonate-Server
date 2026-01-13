@@ -18,7 +18,7 @@ export async function syncGoogleFitForAllUsers() {
     fitnessConnected: true,
   }).lean();
 
-  console.log(`👥 Syncing ${users.length} Google Fit users`);
+  console.log(`Syncing ${users.length} Google Fit users`);
 
   for (const user of users) {
     await syncUserSafely(user);
