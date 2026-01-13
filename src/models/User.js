@@ -21,9 +21,9 @@ const userSchema = new mongoose.Schema(
       type: Boolean
     },
 
-    age: Number,
-    height: Number,
-    weight: Number,
+    dateOfBirth: Date,
+    heightCm: Number,
+    weightKg: Number,
 
 
     goals: String,

@@ -12,7 +12,7 @@ const setAuthCookie = (res, token) => {
 
   res.cookie("authToken", token, {
     httpOnly: true,
-    secure: isProd,                 
+    secure: isProd,
     sameSite: isProd ? "none" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
@@ -22,7 +22,23 @@ const setAuthCookie = (res, token) => {
 export const registerUser = async (req, res) => {
   try {
     const { uid, email, name } = req.user;
-    const { age, weight, goal, phone } = req.body;
+    const {
+      // age (derived from DOB usually, but here we expect data to be passed to match schema if frontend sends it, 
+      // or we might need to change frontend to send DOB. 
+      // distinct mismatch: frontend sends age, model wants dateOfBirth.
+      // I will accept dateOfBirth from body if sent, or I need to calculate it.
+      // Based on previous turn, I will update frontend to send dateOfBirth.
+      dateOfBirth,
+      weightKg,
+      goals,
+      phone,
+      gender,
+      heightCm,
+      dietType,
+      hasMedicalCondition,
+      medicalConditions,
+      menstrualProfile
+    } = req.body;
 
     const existingUser = await User.findOne({ firebaseUid: uid });
     if (existingUser) {
@@ -34,9 +50,15 @@ export const registerUser = async (req, res) => {
       email,
       name,
       phone,
-      age,
-      weight,
-      goals: goal,
+      dateOfBirth,
+      weightKg,
+      goals,
+      gender,
+      heightCm,
+      dietType,
+      hasMedicalCondition,
+      medicalConditions,
+      menstrualProfile
     });
 
     const token = generateToken(user._id);
