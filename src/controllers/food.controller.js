@@ -31,7 +31,7 @@ export const analyzeFood = async (req, res) => {
                 const imageUrl = result.secure_url;
 
                 try {
-                    // Call Microservice
+                    
                     const microserviceUrl = process.env.MICROSERVICE_URL || "http://127.0.0.1:8000";
                     const response = await axios.post(`${microserviceUrl}/analyze-food`, {
                         imageUrl,
@@ -40,7 +40,6 @@ export const analyzeFood = async (req, res) => {
 
                     const aiData = response.data.analysis;
 
-                    // SAVE TO DB
                     const log = await FoodLog.create({
                         userId: req.user.firebaseUid,
                         imageUrl,

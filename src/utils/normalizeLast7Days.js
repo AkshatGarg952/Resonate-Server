@@ -1,5 +1,3 @@
-// utils/normalizeLast7Days.js
-
 export function normalizeLast7Days(data, valueKey, defaultValue = 0) {
   const map = new Map(data.map(d => [d.date, d]));
 

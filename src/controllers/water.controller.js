@@ -1,11 +1,9 @@
 import { FitnessData } from "../models/FitnessData.js";
 
-// Get Water Data (Current Day + History just in case)
 export const getWaterData = async (req, res) => {
     try {
         const userId = req.user._id;
 
-        // Find or create the resonate provider document for this user
         let fitnessData = await FitnessData.findOne({ userId, provider: "resonate" });
 
         if (!fitnessData) {
@@ -17,7 +15,6 @@ export const getWaterData = async (req, res) => {
             });
         }
 
-        // Find today's entry
         const today = new Date().toISOString().split('T')[0];
         const todayEntry = fitnessData.waterHistory.find(w => w.date === today) || { date: today, amountMl: 0, goalMl: 0 };
 
@@ -32,11 +29,10 @@ export const getWaterData = async (req, res) => {
     }
 };
 
-// Log Water (Add/Update for today)
 export const logWater = async (req, res) => {
     try {
         const userId = req.user._id;
-        const { amountMl, date } = req.body; // Allow passing date manually or default to today
+        const { amountMl, date } = req.body;
 
         const targetDate = date || new Date().toISOString().split('T')[0];
         const amountToAdd = parseInt(amountMl);
@@ -45,7 +41,6 @@ export const logWater = async (req, res) => {
             return res.status(400).json({ message: "Invalid amount" });
         }
 
-        // Upsert logic
         let fitnessData = await FitnessData.findOne({ userId, provider: "resonate" });
 
         if (!fitnessData) {
@@ -69,7 +64,6 @@ export const logWater = async (req, res) => {
 
         await fitnessData.save();
 
-        // Return the updated day entry
         const updatedEntry = fitnessData.waterHistory.find(w => w.date === targetDate);
         res.json(updatedEntry);
 
@@ -79,7 +73,6 @@ export const logWater = async (req, res) => {
     }
 };
 
-// Set Goal
 export const setWaterGoal = async (req, res) => {
     try {
         const userId = req.user._id;

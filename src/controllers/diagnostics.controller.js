@@ -152,7 +152,6 @@ export const uploadDiagnostics = async (req, res) => {
   const userId = req.user.firebaseUid
 
   try {
-    // Get user's gender for biomarker range validation
     const user = await User.findOne({ firebaseUid: userId });
     const userGender = user?.gender || null;
 
@@ -177,7 +176,6 @@ export const uploadDiagnostics = async (req, res) => {
           });
 
           try {
-            // Send PDF URL to microservice for parsing
             const parsingResponse = await axios.post(
               `${process.env.MICROSERVICE_URL}/parse-report`,
               {
@@ -188,7 +186,6 @@ export const uploadDiagnostics = async (req, res) => {
 
             console.log("Parsing response:", parsingResponse.data);
 
-            // Get raw biomarkers from microservice response
             const rawBiomarkers = parsingResponse.data.values || {};
 
             if (!rawBiomarkers || Object.keys(rawBiomarkers).length === 0) {
@@ -199,21 +196,17 @@ export const uploadDiagnostics = async (req, res) => {
               });
             }
 
-            // Process biomarkers category-wise with gender-based validation
             const processed = processBiomarkers(rawBiomarkers, userGender, null);
 
-            // Convert to plain objects for MongoDB storage (MongoDB Maps are stored as objects)
             record.biomarkers = processed.all;
             record.biomarkersByCategory = processed.byCategory;
             record.status = "completed";
             await record.save();
 
-            // Send notification if needed
             try {
               await sendReportReady(userId);
             } catch (notifError) {
               console.error("Notification error:", notifError);
-              // Don't fail the request if notification fails
             }
 
             return res.json({
@@ -297,7 +290,6 @@ export const fetchDiagnosticsFromAPI = async (req, res) => {
   try {
     const userId = req.user.firebaseUid;
 
-    // Get user's gender for biomarker range validation
     const user = await User.findOne({ firebaseUid: userId });
     const userGender = user?.gender || null;
 
@@ -316,7 +308,6 @@ export const fetchDiagnosticsFromAPI = async (req, res) => {
       return res.status(400).json({ message: "No biomarker data received" });
     }
 
-    // Process biomarkers using the new system
     const processed = processBiomarkers(data, userGender, null);
 
     const record = await Diagnostics.create({

@@ -5,14 +5,12 @@ export const generateWorkout = async (req, res) => {
     try {
         const { fitnessLevel, equipment, timeAvailable, injuries } = req.body;
 
-        // Ensure inputs are present
         if (!fitnessLevel || !timeAvailable) {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
         const MICROSERVICE_URL = process.env.MICROSERVICE_URL || "http://127.0.0.1:10000";
 
-        // Extract profile details if available
         let age = null, gender = null, weight = null, cyclePhase = null;
         if (req.user) {
             age = req.user.age;
@@ -36,7 +34,6 @@ export const generateWorkout = async (req, res) => {
 
         const plan = response.data.plan;
 
-        // Save to DB if user is authenticated
         if (req.user) {
             const newWorkout = new Workout({
                 user: req.user._id,
@@ -49,7 +46,7 @@ export const generateWorkout = async (req, res) => {
         res.status(200).json({ status: "success", plan });
     } catch (error) {
         console.error("Error generating workout:", error.message);
-        // Handle specific axios errors
+
         if (error.response) {
             return res.status(error.response.status).json({ message: "Error from generator service", detail: error.response.data });
         }

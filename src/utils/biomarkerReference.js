@@ -1081,7 +1081,6 @@ export function processBiomarkers(rawBiomarkers, gender = null, timeOfDay = null
 
     processed[normalizedKey] = biomarkerData;
 
-    // Add biomarker to all its categories
     biomarker.categories.forEach(category => {
       categorized[category][normalizedKey] = biomarkerData;
     });

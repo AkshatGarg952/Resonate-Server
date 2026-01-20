@@ -44,7 +44,7 @@ export const registerUser = async (req, res) => {
     const user = await User.create({
       firebaseUid: uid,
       email,
-      name: name || tokenName, // Prioritize name from body, fallback to token
+      name: name || tokenName,
       phone,
       dateOfBirth,
       weightKg,

@@ -1,7 +1,6 @@
 import { User } from "../models/User.js";
 import axios from "axios";
 
-// Helper to call AI service
 const generatePlanFromAI = async (user) => {
     const payload = {
         age: user.age,
@@ -14,7 +13,6 @@ const generatePlanFromAI = async (user) => {
         cuisine: "Indian"
     };
 
-    // Ensure MICROSERVICE_URL is defined in .env
     const microserviceUrl = process.env.MICROSERVICE_URL || "http://localhost:10000";
     const response = await axios.post(`${microserviceUrl}/generate-nutrition`, payload);
     return response.data;
@@ -30,16 +28,13 @@ export const getDailySuggestions = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        // Check if plan exists (we serve it regardless of date, user can regenerate manually)
         if (user.dailyMealPlan) {
             return res.json({ status: "success", plan: user.dailyMealPlan });
         }
 
-        // If no plan exists at all, generate one automatically
         try {
             const aiResponse = await generatePlanFromAI(user);
 
-            // Save to DB
             user.dailyMealPlan = aiResponse.plan || aiResponse;
             user.mealPlanDate = new Date();
             await user.save();
@@ -69,7 +64,6 @@ export const generateNewDailySuggestions = async (req, res) => {
         try {
             const aiResponse = await generatePlanFromAI(user);
 
-            // Save to DB
             user.dailyMealPlan = aiResponse.plan || aiResponse;
             user.mealPlanDate = new Date();
             await user.save();

@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 
 const foodLogSchema = new mongoose.Schema(
     {
-        userId: { type: String, required: true, index: true }, // Firebase UID
+        userId: { type: String, required: true, index: true }, 
         imageUrl: { type: String, required: true },
         cuisineContext: { type: String, default: "General" },
 
@@ -19,10 +19,9 @@ const foodLogSchema = new mongoose.Schema(
             fiber: { type: String }
         },
 
-        healthRating: { type: Number }, // 1-10
+        healthRating: { type: Number },
         suggestions: { type: String },
 
-        // For future portfolio analysis
         mealType: {
             type: String,
             enum: ["breakfast", "lunch", "dinner", "snack", "unknown"],
