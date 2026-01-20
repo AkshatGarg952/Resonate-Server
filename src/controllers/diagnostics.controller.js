@@ -9,32 +9,141 @@ import { processBiomarkers } from "../utils/biomarkerReference.js";
 dotenv.config();
 
 const BIOMARKERS_LIST = [
+  // General Health & Micronutrients
   "Vitamin B12",
   "Vitamin D",
-  "HS-CRP",
-  "Homocysteine",
-  "HbA1c",
-  "Cortisol",
-  "Serum Creatinine",
-  "Uric Acid",
   "Calcium",
-  "Ferritin",
   "Magnesium",
   "Iron",
+  "Ferritin",
+  "Vitamin B9",
+  "Folate",
+
+  // Inflammation Status
+  "HS-CRP",
+  "C-Reactive Protein",
+  "Homocysteine",
+  "ESR",
+  "Erythrocyte Sedimentation Rate",
+  "Immunoglobulin E",
+  "IgE",
+
+  // Metabolic & Glucose Regulation
+  "HbA1c",
   "Fasting Glucose",
+  "Fasting Insulin",
+  "HOMA-IR",
+
+  // Thyroid & Hormones
   "TSH",
   "Free T3",
+  "Free T4",
+  "Cortisol",
+  "Testosterone Free",
+  "Free Testosterone",
+  "Testosterone Total",
+  "Total Testosterone",
+  "Dihydrotestosterone",
+  "DHT",
+  "Estradiol",
+  "SHBG",
+  "Sex Hormone Binding Globulin",
+  "Prostate Specific Antigen",
+  "PSA",
+  "DHEA-S",
+  "Prolactin",
+  "Anti Mullerian Hormone",
+  "AMH",
+
+  // Cholesterol & Lipids
+  "Total Cholesterol",
+  "HDL Cholesterol",
+  "LDL Cholesterol",
+  "VLDL Cholesterol",
+  "Triglycerides",
+  "Apolipoprotein A1",
+  "Apolipoprotein B",
+  "Lipoprotein(a)",
+
+  // Liver Function (Detox Panel)
+  "Albumin",
+  "Globulin",
+  "Total Bilirubin",
+  "Direct Bilirubin",
+  "Indirect Bilirubin",
+  "SGOT",
+  "AST",
+  "SGPT",
+  "ALT",
+  "Alkaline Phosphatase",
+  "ALP",
+  "GGT",
+  "Gamma GT",
+
+  // Kidney Health
+  "Serum Creatinine",
+  "Blood Urea",
+  "Blood Urea Nitrogen",
+  "BUN",
+  "Uric Acid",
+  "eGFR",
+  "Sodium",
+  "Potassium",
+  "Chloride",
+
+  // Complete Blood Count (CBC)
   "Hemoglobin",
-  "Red Blood Cell Count"
+  "Hematocrit",
+  "Red Blood Cell Count",
+  "RBC Count",
+  "White Blood Cell Count",
+  "WBC Count",
+  "Platelet Count",
+  "Mean Corpuscular Volume",
+  "MCV",
+  "Mean Corpuscular Hemoglobin",
+  "MCH",
+  "Mean Corpuscular Hemoglobin Concentration",
+  "MCHC",
+  "Red Cell Distribution Width",
+  "RDW",
+  "Mean Platelet Volume",
+  "MPV",
+  "Neutrophils",
+  "Lymphocytes",
+  "Monocytes",
+  "Eosinophils",
+  "Basophils",
+  "Mentzer Index",
+
+  // Risk Assessment Markers
+  "LDH",
+  "Lactate Dehydrogenase",
+  "CPK",
+  "Creatine Phosphokinase",
+  "RA Factor",
+  "Rheumatoid Factor",
+  "IL-6",
+  "Interleukin-6",
+  "HBsAg",
+  "Hepatitis B Surface Antigen",
+  "HCV Antibody",
+  "Anti-HCV",
+  "Lithium",
+  "Transferrin Saturation",
+  "TIBC",
+  "Total Iron Binding Capacity",
+  "UIBC",
+  "Unbound Iron Binding Capacity"
 ];
 
 
 
 export const uploadDiagnostics = async (req, res) => {
-  
+
   if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+    return res.status(401).json({ message: "Unauthorized" });
+  }
 
   if (!req.file) {
     return res.status(400).json({ message: "PDF file required" });
@@ -71,27 +180,28 @@ export const uploadDiagnostics = async (req, res) => {
             // Send PDF URL to microservice for parsing
             const parsingResponse = await axios.post(
               `${process.env.MICROSERVICE_URL}/parse-report`,
-              { pdfUrl,
-              biomarkers: BIOMARKERS_LIST
+              {
+                pdfUrl,
+                biomarkers: BIOMARKERS_LIST
               }
             );
-            
+
             console.log("Parsing response:", parsingResponse.data);
-            
+
             // Get raw biomarkers from microservice response
             const rawBiomarkers = parsingResponse.data.values || {};
-            
+
             if (!rawBiomarkers || Object.keys(rawBiomarkers).length === 0) {
               record.status = "failed";
               await record.save();
-              return res.status(400).json({ 
-                message: "No biomarkers found in the report" 
+              return res.status(400).json({
+                message: "No biomarkers found in the report"
               });
             }
-            
+
             // Process biomarkers category-wise with gender-based validation
             const processed = processBiomarkers(rawBiomarkers, userGender, null);
-            
+
             // Convert to plain objects for MongoDB storage (MongoDB Maps are stored as objects)
             record.biomarkers = processed.all;
             record.biomarkersByCategory = processed.byCategory;
@@ -159,7 +269,7 @@ export const getLatestDiagnostics = async (req, res) => {
     const latest = await Diagnostics.findOne({ userId })
       .sort({ createdAt: -1 })
       .select("biomarkers biomarkersByCategory status pdfUrl updatedAt createdAt");
-    
+
 
     return res.json(latest);
   } catch (error) {
@@ -175,7 +285,7 @@ export const getDiagnosticsHistory = async (req, res) => {
     const history = await Diagnostics.find({ userId })
       .sort({ createdAt: -1 })
       .select("biomarkers biomarkersByCategory status pdfUrl updatedAt createdAt");
-    
+
     return res.json(history);
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -208,7 +318,7 @@ export const fetchDiagnosticsFromAPI = async (req, res) => {
 
     // Process biomarkers using the new system
     const processed = processBiomarkers(data, userGender, null);
-    
+
     const record = await Diagnostics.create({
       userId: userId,
       pdfUrl: "N/A",
@@ -220,9 +330,9 @@ export const fetchDiagnosticsFromAPI = async (req, res) => {
     return res.json({
       message: "Data fetched & processed successfully",
       diagnostics: record
-    });    
-    
-  } catch(error) {
+    });
+
+  } catch (error) {
     console.error("Fetch diagnostics error:", error);
     return res.status(500).json({ error: error.message });
   }
