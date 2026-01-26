@@ -10,7 +10,10 @@ const workoutSchema = new mongoose.Schema({
         fitnessLevel: String,
         equipment: [String],
         timeAvailable: Number,
-        injuries: [String]
+        injuries: [String],
+        motivationLevel: String,
+        workoutTiming: String,
+        goalBarriers: [String]
     },
     plan: {
         type: Object,

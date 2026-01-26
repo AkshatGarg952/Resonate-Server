@@ -3,7 +3,7 @@ import Workout from "../models/Workout.js";
 
 export const generateWorkout = async (req, res) => {
     try {
-        const { fitnessLevel, equipment, timeAvailable, injuries } = req.body;
+        const { fitnessLevel, equipment, timeAvailable, injuries, motivationLevel, workoutTiming, goalBarriers } = req.body;
 
         if (!fitnessLevel || !timeAvailable) {
             return res.status(400).json({ message: "Missing required fields" });
@@ -26,6 +26,9 @@ export const generateWorkout = async (req, res) => {
             equipment: equipment || [],
             timeAvailable: parseInt(timeAvailable),
             injuries: injuries || [],
+            motivationLevel,
+            workoutTiming,
+            goalBarriers: goalBarriers || [],
             age,
             gender,
             weight,
@@ -37,7 +40,7 @@ export const generateWorkout = async (req, res) => {
         if (req.user) {
             const newWorkout = new Workout({
                 user: req.user._id,
-                inputs: { fitnessLevel, equipment, timeAvailable, injuries },
+                inputs: { fitnessLevel, equipment, timeAvailable, injuries, motivationLevel, workoutTiming, goalBarriers },
                 plan: plan
             });
             await newWorkout.save();
