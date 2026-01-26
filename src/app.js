@@ -9,6 +9,8 @@ import coachRoutes from "./routes/coachLead.routes.js"
 import workoutRoutes from "./routes/workout.routes.js"
 import nutritionRoutes from "./routes/nutrition.routes.js"
 import foodRoutes from "./routes/food.routes.js"
+import interventionRoutes from "./routes/intervention.routes.js";
+import dailyLogRoutes from "./routes/dailyLog.routes.js";
 import { startFitnessSync } from "./cron/fitnessSync.js";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
@@ -47,6 +49,8 @@ app.use("/coach", coachRoutes);
 app.use("/workout", workoutRoutes);
 app.use("/nutrition", nutritionRoutes);
 app.use("/food", foodRoutes);
+app.use("/api/interventions", interventionRoutes);
+app.use("/api/daily-logs", dailyLogRoutes);
 
 startFitnessSync();
 
