@@ -69,3 +69,25 @@ export const getDailyLogs = async (req, res) => {
         res.status(500).json({ success: false, message: "Server Error", error: error.message });
     }
 };
+// Get weekly logs (last 7 days)
+export const getWeeklyLogs = async (req, res) => {
+    try {
+        const today = new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(today.getDate() - 6); // Include today + 6 previous days = 7 days
+        sevenDaysAgo.setHours(0, 0, 0, 0); // Start of that day
+
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
+
+        const logs = await DailyLog.find({
+            user: req.user._id,
+            date: { $gte: sevenDaysAgo, $lte: endOfToday }
+        }).sort({ date: 1 }); // Sort oldest to newest for trend analysis
+
+        res.status(200).json({ success: true, logs });
+    } catch (error) {
+        console.error("Error getting weekly logs:", error);
+        res.status(500).json({ success: false, message: "Server Error", error: error.message });
+    }
+};
