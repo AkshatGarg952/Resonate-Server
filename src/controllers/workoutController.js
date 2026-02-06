@@ -1,5 +1,10 @@
 import axios from "axios";
 import Workout from "../models/Workout.js";
+import { FitnessIngestor } from "../services/ingestors/fitness.ingestor.js";
+import { MemoryService } from "../services/memory.service.js";
+
+const memoryService = new MemoryService();
+const fitnessIngestor = new FitnessIngestor(memoryService);
 
 export const generateWorkout = async (req, res) => {
     try {
@@ -66,5 +71,60 @@ export const getWorkoutHistory = async (req, res) => {
     } catch (error) {
         console.error("Error fetching history:", error);
         res.status(500).json({ message: "Failed to fetch workout history" });
+    }
+};
+
+export const completeWorkout = async (req, res) => {
+    try {
+        const { workoutId, rpe, energyLevel, notes, durationMinutes, actualExercises } = req.body;
+
+        if (!workoutId) {
+            return res.status(400).json({ message: "Workout ID is required" });
+        }
+
+        const workout = await Workout.findOne({ _id: workoutId, user: req.user._id });
+
+        if (!workout) {
+            return res.status(404).json({ message: "Workout not found" });
+        }
+
+
+        workout.status = 'completed';
+        workout.completedAt = new Date();
+        workout.rpe = rpe;
+        workout.energyLevel = energyLevel;
+        workout.notes = notes;
+        if (durationMinutes) workout.durationMinutes = durationMinutes;
+
+        if (actualExercises) {
+            workout.plan.exercises = actualExercises;
+        }
+
+        await workout.save();
+
+        try {
+            const workoutEvent = {
+                name: workout.plan.title || "Workout",
+                type: workout.inputs?.fitnessLevel || "General", // or map inputs to type
+                totalSets: workout.plan.exercises.reduce((acc, ex) => acc + (ex.sets || 0), 0),
+                durationMinutes: durationMinutes || parseInt(workout.plan.duration) || 45,
+                rpe: rpe,
+                energyLevel: energyLevel,
+                caloriesBurned: 300, // Estimate or calc
+                exercises: workout.plan.exercises,
+                timestamp: new Date().toISOString()
+            };
+
+            await fitnessIngestor.processWorkoutEvent(req.user.firebaseUid, workoutEvent);
+
+        } catch (memError) {
+            console.error("Memory ingestion failed:", memError.message);
+        }
+
+        res.status(200).json({ status: "success", message: "Workout completed", workout });
+
+    } catch (error) {
+        console.error("Error completing workout:", error);
+        res.status(500).json({ message: "Failed to complete workout" });
     }
 };

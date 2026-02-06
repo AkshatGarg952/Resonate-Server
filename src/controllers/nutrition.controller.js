@@ -1,4 +1,5 @@
 import { User } from "../models/User.js";
+import { MealPlan } from "../models/MealPlan.js";
 import axios from "axios";
 
 const generatePlanFromAI = async (user) => {
@@ -28,23 +29,25 @@ export const getDailySuggestions = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        if (user.dailyMealPlan) {
-            return res.json({ status: "success", plan: user.dailyMealPlan });
+        // Check for existing plan for today
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const existingPlan = await MealPlan.findOne({
+            user: user._id,
+            date: { $gte: startOfDay, $lte: endOfDay }
+        }).sort({ createdAt: -1 }); // Get latest if multiple
+
+        if (existingPlan) {
+            return res.json({ status: "success", plan: existingPlan.plan, date: existingPlan.date });
         }
 
-        try {
-            const aiResponse = await generatePlanFromAI(user);
-
-            user.dailyMealPlan = aiResponse.plan || aiResponse;
-            user.mealPlanDate = new Date();
-            await user.save();
-
-            return res.json({ status: "success", plan: user.dailyMealPlan });
-
-        } catch (error) {
-            console.error("AI Generation failed:", error.message);
-            return res.status(500).json({ message: "Failed to generate initial plan" });
-        }
+        // If no plan exists for today, return null/empty 
+        // effectively telling frontend to show "Generate" button
+        return res.json({ status: "no_plan", message: "No plan generated for today" });
 
     } catch (error) {
         console.error("Controller Error:", error);
@@ -63,12 +66,22 @@ export const generateNewDailySuggestions = async (req, res) => {
 
         try {
             const aiResponse = await generatePlanFromAI(user);
+            const planData = aiResponse.plan || aiResponse;
 
-            user.dailyMealPlan = aiResponse.plan || aiResponse;
+            const mealPlan = new MealPlan({
+                user: user._id,
+                plan: planData,
+                date: new Date()
+            });
+
+            await mealPlan.save();
+
+            // Also update user for backward compatibility if needed, or just remove later
+            user.dailyMealPlan = planData;
             user.mealPlanDate = new Date();
             await user.save();
 
-            return res.json({ status: "success", plan: user.dailyMealPlan });
+            return res.json({ status: "success", plan: mealPlan.plan });
 
         } catch (error) {
             console.error("AI Generation failed:", error.message);
@@ -78,5 +91,26 @@ export const generateNewDailySuggestions = async (req, res) => {
     } catch (error) {
         console.error("Controller Error:", error);
         return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const getMealHistory = async (req, res) => {
+    try {
+        const userId = req.user.firebaseUid;
+        const user = await User.findOne({ firebaseUid: userId });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const history = await MealPlan.find({ user: user._id })
+            .sort({ date: -1 })
+            .limit(30); // Limit to last 30 entries for now
+
+        return res.json({ status: "success", history });
+
+    } catch (error) {
+        console.error("History Error:", error);
+        return res.status(500).json({ message: "Failed to fetch history" });
     }
 };

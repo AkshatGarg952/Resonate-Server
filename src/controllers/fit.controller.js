@@ -17,7 +17,7 @@ export const redirectToGoogleFit = (req, res) => {
     state: req.user.firebaseUid,
   });
 
-  
+
   res.json({ url });
 };
 
@@ -104,7 +104,7 @@ export const getGoogleFitData = async (req, res) => {
       }
     );
 
-    console.log(fitness);
+
     return res.json(fitness);
   }
 
@@ -123,7 +123,7 @@ export const updateStepGoal = async (req, res) => {
     const fitness = await FitnessData.findOneAndUpdate(
       { userId, provider: "google_fit" },
       { $set: { stepGoal } },
-      { new: true, upsert: true } 
+      { new: true, upsert: true }
     );
 
     res.json({ stepGoal: fitness.stepGoal });

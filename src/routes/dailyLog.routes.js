@@ -1,10 +1,10 @@
 import express from "express";
 import { isAuthenticated } from "../middlewares/isAuthenticated.js";
-import { createDailyLog, getDailyLogs, getWeeklyLogs } from "../controllers/dailyLog.controller.js";
+import { createOrUpdateDailyLog, getDailyLogs, getWeeklyLogs } from "../controllers/dailyLog.controller.js";
 
 const router = express.Router();
 
-router.post("/", isAuthenticated, createDailyLog);
+router.post("/", isAuthenticated, createOrUpdateDailyLog);
 router.get("/weekly", isAuthenticated, getWeeklyLogs);
 router.get("/", isAuthenticated, getDailyLogs);
 

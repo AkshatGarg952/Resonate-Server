@@ -1,0 +1,26 @@
+[
+    {
+        "type": "Lunch",
+        "description": "Grilled chicken salad",
+        "calories": 450,
+        "macros": {
+            "protein": 35,
+            "carbs": 20,
+            "fat": 25
+        },
+        "adherence": true,
+        "timestamp": "2026-02-03T13:00:00Z"
+    },
+    {
+        "type": "Dinner",
+        "description": "Pizza and beer",
+        "calories": 1200,
+        "macros": {
+            "protein": 30,
+            "carbs": 150,
+            "fat": 50
+        },
+        "adherence": false,
+        "timestamp": "2026-02-02T20:00:00Z"
+    }
+]

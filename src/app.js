@@ -14,6 +14,8 @@ import dailyLogRoutes from "./routes/dailyLog.routes.js";
 import { startFitnessSync } from "./cron/fitnessSync.js";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import { defaultRateLimiter, strictRateLimiter } from "./middlewares/rateLimiter.js";
+import logger from "./utils/logger.js";
 
 dotenv.config();
 
@@ -28,10 +30,10 @@ app.use(express.json());
 
 app.use(cookieParser());
 
+// Apply default rate limiting to all routes
+app.use(defaultRateLimiter);
 
-
-
-// ROUTES
+// Health check endpoints
 app.get("/", (req, res) => {
   res.send("Resonate API is running...");
 });
@@ -40,7 +42,8 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-app.use("/auth", authRoutes);
+// Auth routes with stricter rate limiting
+app.use("/auth", strictRateLimiter, authRoutes);
 app.use("/user", userRoutes);
 app.use("/diagnostics", diagnosticsRoutes);
 app.use("/fit", fitRoutes);
@@ -53,5 +56,7 @@ app.use("/api/interventions", interventionRoutes);
 app.use("/api/daily-logs", dailyLogRoutes);
 
 startFitnessSync();
+
+logger.info("App", "Express app initialized");
 
 export default app;

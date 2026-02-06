@@ -1,0 +1,28 @@
+[
+  {
+    "type": "sleep",
+    "hours": 6.5,
+    "quality_score": 6,
+    "interruptions": 2,
+    "stages": {
+      "rem_mins": 45,
+      "deep_mins": 30
+    },
+    "source": "device_sync"
+  },
+  {
+    "type": "sleep",
+    "hours": 7.8,
+    "quality_score": 9,
+    "interruptions": 0,
+    "source": "user_input"
+  },
+  {
+    "type": "stress",
+    "stress_score": 7,
+    "fatigue_level": "high",
+    "soreness": "legs",
+    "notes": "Work deadline approaching",
+    "source": "user_input"
+  }
+]

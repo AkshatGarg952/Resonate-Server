@@ -1,6 +1,6 @@
 import { Intervention } from "../models/Intervention.js";
 
-// Create a new intervention
+
 export const createIntervention = async (req, res) => {
     try {
         const { type, name, startDate, endDate, dosage, frequency, status, notes } = req.body;
@@ -24,7 +24,7 @@ export const createIntervention = async (req, res) => {
     }
 };
 
-// Get all interventions for the user
+
 export const getInterventions = async (req, res) => {
     try {
         const interventions = await Intervention.find({ user: req.user._id }).sort({ createdAt: -1 });
@@ -36,7 +36,7 @@ export const getInterventions = async (req, res) => {
     }
 };
 
-// Get active interventions for the user
+
 export const getActiveInterventions = async (req, res) => {
     try {
         const today = new Date();
@@ -57,7 +57,7 @@ export const getActiveInterventions = async (req, res) => {
         res.status(500).json({ success: false, message: "Server Error", error: error.message });
     }
 };
-// Stop an intervention (discontinue or complete)
+
 export const stopIntervention = async (req, res) => {
     try {
         const { status, reason } = req.body;
@@ -82,7 +82,7 @@ export const stopIntervention = async (req, res) => {
     }
 };
 
-// Update an intervention
+
 export const updateIntervention = async (req, res) => {
     try {
         const { type, name, startDate, endDate, dosage, frequency, status, notes } = req.body;

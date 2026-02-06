@@ -1,0 +1,59 @@
+{
+    "blood_reports": [
+        {
+            "date": "2026-01-25",
+            "markers": [
+                {
+                    "name": "LDL Cholesterol",
+                    "value": 148,
+                    "unit": "mg/dL",
+                    "status": "high",
+                    "previous_value": 135,
+                    "is_key_marker": true
+                },
+                {
+                    "name": "HbA1c",
+                    "value": 5.8,
+                    "unit": "%",
+                    "status": "normal",
+                    "previous_value": 5.7,
+                    "is_key_marker": true
+                },
+                {
+                    "name": "Vitamin D",
+                    "value": 22,
+                    "unit": "ng/mL",
+                    "status": "low",
+                    "previous_value": 20,
+                    "is_key_marker": true
+                },
+                {
+                    "name": "Magnesium",
+                    "value": 2.1,
+                    "unit": "mg/dL",
+                    "status": "normal",
+                    "is_key_marker": false
+                }
+            ]
+        }
+    ],
+    "bca_scans": [
+        {
+            "weight": 91,
+            "body_fat_percent": 28,
+            "muscle_mass_kg": 62,
+            "visceral_fat_level": 12,
+            "source": "scale_sync"
+        }
+    ],
+    "cgm_summaries": [
+        {
+            "description": "Fasting glucose spikes after high-carb dinner, avg 145 mg/dL post-meal",
+            "avg_glucose_mg_dl": 115,
+            "time_in_range_percent": 82,
+            "spike_count": 3,
+            "fasting_glucose_mg_dl": 95,
+            "source": "device_sync"
+        }
+    ]
+}

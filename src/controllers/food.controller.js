@@ -6,6 +6,12 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { FoodLog } from "../models/FoodLog.js";
+import { NutritionIngestor } from "../services/ingestors/nutrition.ingestor.js";
+import { MemoryService } from "../services/memory.service.js";
+import { getMealTypeFromTime } from "../utils/timeUtils.js";
+
+const memoryService = new MemoryService();
+const nutritionIngestor = new NutritionIngestor(memoryService);
 
 export const analyzeFood = async (req, res) => {
     if (!req.user) {
@@ -31,7 +37,7 @@ export const analyzeFood = async (req, res) => {
                 const imageUrl = result.secure_url;
 
                 try {
-                    
+
                     const microserviceUrl = process.env.MICROSERVICE_URL || "http://127.0.0.1:8000";
                     const response = await axios.post(`${microserviceUrl}/analyze-food`, {
                         imageUrl,
@@ -60,6 +66,25 @@ export const analyzeFood = async (req, res) => {
                         healthRating: aiData.health_rating,
                         suggestions: aiData.suggestions
                     });
+
+
+                    try {
+                        const mealEvent = {
+                            type: getMealTypeFromTime(),
+                            description: log.foodName,
+                            calories: log.nutritionalInfo.calories,
+                            macros: {
+                                protein: parseInt(log.nutritionalInfo.protein) || 0,
+                                carbs: parseInt(log.nutritionalInfo.carbohydrates) || 0,
+                                fat: parseInt(log.nutritionalInfo.fats) || 0
+                            },
+                            adherence: true // Assuming adherence if they are logging it; could be enhanced later
+                        };
+                        await nutritionIngestor.processMealEvent(req.user.firebaseUid, mealEvent);
+                    } catch (memError) {
+                        console.error("Memory ingestion failed:", memError.message);
+                        // Fail open - do not block response
+                    }
 
                     return res.json({
                         message: "Food analyzed and saved successfully",
