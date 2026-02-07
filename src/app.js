@@ -11,11 +11,16 @@ import nutritionRoutes from "./routes/nutrition.routes.js"
 import foodRoutes from "./routes/food.routes.js"
 import interventionRoutes from "./routes/intervention.routes.js";
 import dailyLogRoutes from "./routes/dailyLog.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 import { startFitnessSync } from "./cron/fitnessSync.js";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import { defaultRateLimiter, strictRateLimiter } from "./middlewares/rateLimiter.js";
 import logger from "./utils/logger.js";
+
+// Swagger docs
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./config/swagger.config.js";
 
 dotenv.config();
 
@@ -32,6 +37,12 @@ app.use(cookieParser());
 
 // Apply default rate limiting to all routes
 app.use(defaultRateLimiter);
+
+// API Documentation - available at /api-docs
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: "Resonate API Docs"
+}));
 
 // Health check endpoints
 app.get("/", (req, res) => {
@@ -54,6 +65,7 @@ app.use("/nutrition", nutritionRoutes);
 app.use("/food", foodRoutes);
 app.use("/api/interventions", interventionRoutes);
 app.use("/api/daily-logs", dailyLogRoutes);
+app.use("/api/admin/memory", adminRoutes);
 
 startFitnessSync();
 

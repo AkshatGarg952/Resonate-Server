@@ -1,5 +1,6 @@
 import { User } from "../models/User.js";
 import { MealPlan } from "../models/MealPlan.js";
+import { MemoryContextBuilder } from "../services/memory/memoryContext.builder.js";
 import axios from "axios";
 
 const generatePlanFromAI = async (user) => {
@@ -11,7 +12,8 @@ const generatePlanFromAI = async (user) => {
         goals: user.goals,
         dietType: user.dietType,
         allergies: user.medicalConditions || [],
-        cuisine: "Indian"
+        cuisine: "Indian",
+        memoryContext: user.memoryContext || {} // injected from controller wrapper
     };
 
     const microserviceUrl = process.env.MICROSERVICE_URL || "http://localhost:10000";
@@ -65,6 +67,15 @@ export const generateNewDailySuggestions = async (req, res) => {
         }
 
         try {
+            const memoryContextBuilder = new MemoryContextBuilder();
+            try {
+                const memoryContext = await memoryContextBuilder.buildMemoryContext(userId, 'nutrition_plan');
+                user.memoryContext = memoryContext;
+            } catch (err) {
+                console.error("Failed to build memory context for nutrition:", err);
+                user.memoryContext = {};
+            }
+
             const aiResponse = await generatePlanFromAI(user);
             const planData = aiResponse.plan || aiResponse;
 

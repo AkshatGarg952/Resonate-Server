@@ -2,6 +2,7 @@ import axios from "axios";
 import Workout from "../models/Workout.js";
 import { FitnessIngestor } from "../services/ingestors/fitness.ingestor.js";
 import { MemoryService } from "../services/memory.service.js";
+import { MemoryContextBuilder } from "../services/memory/memoryContext.builder.js";
 
 const memoryService = new MemoryService();
 const fitnessIngestor = new FitnessIngestor(memoryService);
@@ -26,6 +27,16 @@ export const generateWorkout = async (req, res) => {
             }
         }
 
+        const memoryContextBuilder = new MemoryContextBuilder();
+        let memoryContext = {};
+        if (req.user) {
+            try {
+                memoryContext = await memoryContextBuilder.buildMemoryContext(req.user.firebaseUid, 'fitness_plan');
+            } catch (err) {
+                console.error("Failed to build memory context:", err);
+            }
+        }
+
         const response = await axios.post(`${MICROSERVICE_URL}/generate-workout`, {
             fitnessLevel,
             equipment: equipment || [],
@@ -37,7 +48,8 @@ export const generateWorkout = async (req, res) => {
             age,
             gender,
             weight,
-            cyclePhase
+            cyclePhase,
+            memoryContext // Inject memory context
         });
 
         const plan = response.data.plan;
