@@ -1,13 +1,13 @@
 import express from "express";
 import { getUserMemories, deleteMemory, addMemoryManual } from "../controllers/admin/memory.controller.js";
-import { protect } from "../middlewares/auth.middleware.js"; // Assuming auth middleware exists
+import { isAuthenticated } from "../middlewares/isAuthenticated.js";
 
 const router = express.Router();
 
 // Base path: /api/admin/memory
 
-router.get("/:userId", protect, getUserMemories);
-router.post("/:userId", protect, addMemoryManual);
-router.delete("/:memoryId", protect, deleteMemory);
+router.get("/:userId", isAuthenticated, getUserMemories);
+router.post("/:userId", isAuthenticated, addMemoryManual);
+router.delete("/:memoryId", isAuthenticated, deleteMemory);
 
 export default router;
