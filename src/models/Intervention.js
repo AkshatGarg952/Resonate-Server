@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const interventionSchema = new mongoose.Schema(
+export const Intervention = mongoose.model("Intervention", new mongoose.Schema(
     {
         user: {
             type: mongoose.Schema.Types.ObjectId,
@@ -9,40 +9,55 @@ const interventionSchema = new mongoose.Schema(
         },
         type: {
             type: String,
-            enum: ["supplement", "diet", "fitness", "meditation", "other"],
+            enum: ["sleep", "training", "nutrition", "stress", "recovery", "supplement", "diet", "fitness", "meditation", "other"],
             required: true,
         },
-        name: {
+        recommendation: {
             type: String,
             required: true,
             trim: true,
+        },
+        rationale: {
+            type: String,
+            required: true,
         },
         startDate: {
             type: Date,
             required: true,
         },
-        endDate: {
-            type: Date,
+        durationDays: {
+            type: Number,
+            required: true,
         },
-        dosage: {
-            type: String, // e.g., "500mg", "1 tablet"
+        endDate: { // calculated or actual end
+            type: Date
         },
-        frequency: {
-            type: String, // e.g., "daily", "twice a day"
+        targetMetric: {
+            type: String, // e.g., "sleep_hours", "rpe_avg"
+            required: true,
+        },
+        targetValue: {
+            type: Number,
+            required: true,
         },
         status: {
             type: String,
-            enum: ["active", "paused", "discontinued", "completed"],
+            enum: ["active", "completed", "abandoned", "discontinued"],
             default: "active",
         },
         discontinuationReason: {
-            type: String, // Reason for discontinuing earlier than planned
+            type: String
         },
-        notes: {
+        checkInFrequency: { // implementation detail, maybe useful
             type: String,
+            enum: ["daily", "weekly"],
+            default: "daily"
         },
+        outcomes: [{
+            date: Date,
+            metricValue: Number,
+            notes: String
+        }]
     },
     { timestamps: true }
-);
-
-export const Intervention = mongoose.model("Intervention", interventionSchema);
+));

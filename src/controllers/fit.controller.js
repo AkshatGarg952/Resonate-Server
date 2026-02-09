@@ -17,8 +17,7 @@ export const redirectToGoogleFit = (req, res) => {
     state: req.user.firebaseUid,
   });
 
-
-  res.json({ url });
+  res.redirect(url);
 };
 
 export const handleGoogleFitCallback = async (req, res) => {

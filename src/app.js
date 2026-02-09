@@ -12,6 +12,8 @@ import foodRoutes from "./routes/food.routes.js"
 import interventionRoutes from "./routes/intervention.routes.js";
 import dailyLogRoutes from "./routes/dailyLog.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import insightsRoutes from "./routes/insights.routes.js";
+import adminDashboardRoutes from "./routes/admin.dashboard.routes.js";
 import { startFitnessSync } from "./cron/fitnessSync.js";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
@@ -66,6 +68,8 @@ app.use("/food", foodRoutes);
 app.use("/api/interventions", interventionRoutes);
 app.use("/api/daily-logs", dailyLogRoutes);
 app.use("/api/admin/memory", adminRoutes);
+app.use("/api/insights", insightsRoutes);
+app.use("/api/admin/dashboard", adminDashboardRoutes);
 
 startFitnessSync();
 

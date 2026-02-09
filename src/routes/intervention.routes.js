@@ -1,16 +1,25 @@
 import express from "express";
 import { isAuthenticated } from "../middlewares/isAuthenticated.js";
-import { createIntervention, getInterventions, getActiveInterventions, stopIntervention, updateIntervention } from "../controllers/intervention.controller.js";
+import {
+    createIntervention,
+    getInterventions,
+    getActiveInterventions,
+    stopIntervention,
+    updateIntervention,
+    recordOutcome,
+    getInterventionAnalysis
+} from "../controllers/intervention.controller.js";
 
 const router = express.Router();
 
 router.post("/", isAuthenticated, createIntervention);
 router.get("/active", isAuthenticated, getActiveInterventions);
+router.get("/", isAuthenticated, getInterventions);
+
+router.post("/:id/outcome", isAuthenticated, recordOutcome);
+router.get("/:id/analysis", isAuthenticated, getInterventionAnalysis);
 
 router.patch("/:id/stop", isAuthenticated, stopIntervention);
 router.put("/:id", isAuthenticated, updateIntervention);
-
-router.get("/", isAuthenticated, getInterventions);
-
 
 export default router;

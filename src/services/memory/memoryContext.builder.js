@@ -173,38 +173,117 @@ export class MemoryContextBuilder {
      * Enrich context for general insights
      * Focus: Broad trends, changes in diagnostics, correlation between categories
      */
+    /**
+     * Enrich context for general insights
+     * Focus: Broad trends, changes in diagnostics, correlation between categories
+     */
     async _enrichInsightsContext(userId, context) {
-        // 1. Fetch broad range of recent activities
-        const recentActivity = await this.memoryService.searchMemory(userId, 'recent health activity summary', {}, 10);
+        // 1. Fetch recent sleep logs (last 7 days)
+        const sleepLogs = await this.memoryService.searchMemory(userId, 'sleep duration quality', {
+            category: 'recovery.sleep'
+        }, 7);
 
-        // 2. Fetch diagnostics
-        const diagnostics = await this.memoryService.searchMemory(userId, 'blood test body composition cgm', {
-            category: 'diagnostics.blood' // partial cover, might need multiple queries
-        }, 3);
+        // 2. Fetch recent workout logs (last 7 days)
+        const workoutLogs = await this.memoryService.searchMemory(userId, 'workout training session', {
+            category: 'fitness.training'
+        }, 7);
+
+        // 3. Fetch recent nutrition logs (last 14 days)
+        const nutritionLogs = await this.memoryService.searchMemory(userId, 'meal food intake calories', {
+            category: 'nutrition.intake'
+        }, 14);
+
+        // 4. Fetch latest diagnostics
+        const bloodTest = await this.memoryService.searchMemory(userId, 'blood test results', {
+            category: 'diagnostics.blood'
+        }, 1);
 
         const bca = await this.memoryService.searchMemory(userId, 'body composition weight', {
             category: 'diagnostics.bca'
-        }, 3);
+        }, 1);
 
-        // 3. Fetch past outcomes
+        // 5. Fetch recent outcomes
         const outcomes = await this.memoryService.searchMemory(userId, 'intervention outcome result', {
             category: 'intervention.outcome'
         }, 5);
 
-        if (recentActivity.results.length > 0) {
-            context.recent_events.push(...recentActivity.results.map(r => r.memory));
+        // 6. Fetch active interventions
+        const interventions = await this.memoryService.searchMemory(userId, 'active health intervention', {
+            category: 'intervention.plan'
+        }, 5);
+
+        // --- Process and Attach to Context ---
+
+        // Sleep Analysis
+        if (sleepLogs.results.length > 0) {
+            context.recent_events.push(...sleepLogs.results.map(r => r.memory));
+
+            const sleepHours = sleepLogs.results
+                .map(r => r.metadata?.module_specific?.hours)
+                .filter(h => typeof h === 'number');
+
+            if (sleepHours.length) {
+                const avgSleep = sleepHours.reduce((a, b) => a + b, 0) / sleepHours.length;
+                context.trends.avg_sleep_hours = parseFloat(avgSleep.toFixed(1));
+                context.trends.sleep_log_count = sleepHours.length;
+            }
         }
 
-        if (diagnostics.results.length > 0) {
-            context.key_facts.push(...diagnostics.results.map(r => `Diagnostic: ${r.memory}`));
+        // Workout Analysis
+        if (workoutLogs.results.length > 0) {
+            context.recent_events.push(...workoutLogs.results.map(r => r.memory));
+
+            const rpeValues = workoutLogs.results
+                .map(r => r.metadata?.module_specific?.rpe)
+                .filter(r => typeof r === 'number');
+
+            if (rpeValues.length) {
+                const avgRpe = rpeValues.reduce((a, b) => a + b, 0) / rpeValues.length;
+                context.trends.avg_workout_intensity = parseFloat(avgRpe.toFixed(1));
+                context.trends.workout_count_last_7d = rpeValues.length;
+            }
+        }
+
+        // Nutrition Analysis
+        if (nutritionLogs.results.length > 0) {
+            context.recent_events.push(...nutritionLogs.results.slice(0, 5).map(r => r.memory));
+
+            const compliantCount = nutritionLogs.results.filter(r =>
+                (r.metadata?.module_specific?.plan_adherence === true) ||
+                (r.memory && r.memory.toLowerCase().includes('adhered'))
+            ).length;
+
+            const adherenceRate = (compliantCount / nutritionLogs.results.length) * 100;
+            context.trends.nutrition_adherence_percent = Math.round(adherenceRate);
+        }
+
+        // Diagnostics
+        if (bloodTest.results.length > 0) {
+            const latest = bloodTest.results[0];
+            context.key_facts.push(`Latest Blood Test: ${latest.memory}`);
+            context.trends.latest_blood_test = latest; // Store full object for rules
         }
 
         if (bca.results.length > 0) {
-            context.key_facts.push(...bca.results.map(r => `Body Comp: ${r.memory}`));
+            const latest = bca.results[0];
+            context.key_facts.push(`Latest Body Comp: ${latest.memory}`);
+
+            const weight = latest.metadata?.module_specific?.weight_kg ||
+                latest.metadata?.module_specific?.weight;
+            if (weight) context.trends.current_weight_kg = weight;
         }
 
+        // Outcomes & Interventions
         if (outcomes.results.length > 0) {
             context.intervention_history.push(...outcomes.results.map(r => r.memory));
+        }
+
+        if (interventions.results.length > 0) {
+            context.active_interventions = interventions.results.map(r => ({
+                id: r.id,
+                text: r.memory,
+                metadata: r.metadata
+            }));
         }
     }
 }
