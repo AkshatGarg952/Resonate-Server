@@ -4,13 +4,25 @@ import { MemoryContextBuilder } from "../services/memory/memoryContext.builder.j
 import axios from "axios";
 
 const generatePlanFromAI = async (user) => {
+    // Calculate age from DOB if available
+    let age = user.age; // fallback if it exists
+    if (!age && user.dateOfBirth) {
+        const today = new Date();
+        const birthDate = new Date(user.dateOfBirth);
+        age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+    }
+
     const payload = {
-        age: user.age,
-        gender: user.gender,
-        weight: user.weight,
-        height: user.height,
-        goals: user.goals,
-        dietType: user.dietType,
+        age: age || 25, // Default age if missing to satisfy validation
+        gender: user.gender || "female", // Default gender
+        weight: user.weightKg || 60, // Default weight
+        height: user.heightCm || 160, // Default height
+        goals: user.goals || "Stay Healthy",
+        dietType: user.dietType || "vegetarian",
         allergies: user.medicalConditions || [],
         cuisine: "Indian",
         memoryContext: user.memoryContext || {} // injected from controller wrapper
