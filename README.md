@@ -137,6 +137,10 @@ Resonate-Server/
 
 ## API Endpoints
 
+### API Documentation
+The full Swagger API documentation is available at:
+- `http://localhost:5000/api-docs` (Local Development)
+
 ### Authentication
 - `POST /auth/register` - Register new user
 - `POST /auth/login` - User login
@@ -160,6 +164,12 @@ Resonate-Server/
 - `POST /diagnostics/blood` - Upload blood test
 - `POST /diagnostics/bca` - Upload BCA scan
 - `GET /diagnostics/history` - Get diagnostic history
+
+### Memory
+- `GET /user/memories` - Get own memories
+- `GET /api/admin/memory/:userId` - Get user memories (Admin)
+- `POST /api/admin/memory/:userId` - Add memory (Admin)
+- `DELETE /api/admin/memory/:memoryId` - Delete memory (Admin)
 
 ## Development
 
