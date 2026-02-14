@@ -7,7 +7,7 @@ const insightsEngine = new InsightsEngine();
 // Get daily insights for the authenticated user
 export const getDailyInsights = async (req, res) => {
     try {
-        const userId = req.user.id; // Assumes auth middleware populates req.user
+        const userId = req.user.firebaseUid; // Use Mem0 user identifier
 
         logger.debug('CONTROLLER', 'Request for daily insights', { userId });
 
@@ -23,7 +23,7 @@ export const getDailyInsights = async (req, res) => {
             generated_at: new Date().toISOString()
         });
     } catch (error) {
-        logger.logError('CONTROLLER', error, { userId: req.user?.id });
+        logger.logError('CONTROLLER', error, { userId: req.user?.firebaseUid });
         res.status(500).json({
             success: false,
             message: 'Failed to generate insights',

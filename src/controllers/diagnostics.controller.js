@@ -8,7 +8,13 @@ import { processBiomarkers } from "../utils/biomarkerReference.js";
 import { BIOMARKERS_LIST } from "../config/biomarkers.js";
 import logger from "../utils/logger.js";
 
+import { DiagnosticsIngestor } from "../services/ingestors/diagnostics.ingestor.js";
+import { MemoryService } from "../services/memory.service.js";
+
 dotenv.config();
+
+const memoryService = new MemoryService();
+const diagnosticsIngestor = new DiagnosticsIngestor(memoryService);
 
 
 
@@ -80,6 +86,26 @@ export const uploadDiagnostics = async (req, res) => {
               await sendReportReady(userId);
             } catch (notifError) {
               console.error("Notification error:", notifError);
+            }
+
+            // Push to Memory Layer
+            try {
+              const memoryMarkers = Object.entries(processed.all).map(([key, data]) => ({
+                name: key,
+                value: data.value,
+                unit: data.unit,
+                status: data.status,
+                previous_value: null // TODO: Fetch previous record to compare
+              }));
+
+              await diagnosticsIngestor.processBloodReport(userId, {
+                date: new Date().toISOString().split('T')[0],
+                markers: memoryMarkers
+              });
+              logger.info(`Pushed blood report memory for user ${userId}`);
+            } catch (memoryError) {
+              console.error("Memory push error:", memoryError);
+              // Don't fail the request if memory push fails
             }
 
             return res.json({

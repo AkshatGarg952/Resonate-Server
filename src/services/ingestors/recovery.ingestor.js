@@ -7,7 +7,7 @@ export class RecoveryIngestor {
     const hours = sleepData.hours || 0;
     const quality = sleepData.quality_score || 0;
     const interruptions = sleepData.interruptions || 0;
-    
+
     // Generate compact memory text
     const memoryText = `Sleep: ${this._formatDuration(hours)}, quality ${quality}/10, woke up ${interruptions} times`;
 
@@ -28,7 +28,7 @@ export class RecoveryIngestor {
   async processStressEvent(userId, stressData) {
     const stressScore = stressData.stress_score || 0;
     const descriptors = [];
-    
+
     if (stressData.fatigue_level) descriptors.push(`fatigue: ${stressData.fatigue_level}`);
     if (stressData.soreness) descriptors.push(`soreness: ${stressData.soreness}`);
     if (stressData.notes) descriptors.push(stressData.notes);
@@ -46,6 +46,36 @@ export class RecoveryIngestor {
         stress_score: stressScore,
         fatigue_level: stressData.fatigue_level,
         soreness: stressData.soreness
+      }
+    };
+
+    return await this.memoryService.addMemory(userId, memoryText, metadata);
+  }
+
+  async processDailyLog(userId, logData) {
+    let memoryText = `Daily Log:`;
+    const updates = [];
+
+    if (logData.energyLevel) updates.push(`Energy ${logData.energyLevel}/10`);
+    if (logData.stressLevel) updates.push(`Stress ${logData.stressLevel}/10`);
+    if (logData.sleepQuality) updates.push(`Sleep Quality ${logData.sleepQuality}/10`);
+    if (logData.mood) updates.push(`Mood: ${logData.mood}`);
+    if (logData.symptoms && logData.symptoms.length > 0) updates.push(`Symptoms: ${logData.symptoms.join(', ')}`);
+    if (logData.notes) updates.push(`Notes: ${logData.notes}`);
+
+    if (updates.length === 0) return null; // Nothing to log
+
+    memoryText += ` ${updates.join(', ')}.`;
+
+    const metadata = {
+      category: 'recovery.daily_log',
+      source: 'user_input',
+      module_specific: {
+        energy_level: logData.energyLevel,
+        stress_level: logData.stressLevel,
+        sleep_quality: logData.sleepQuality,
+        mood: logData.mood,
+        symptoms: logData.symptoms
       }
     };
 

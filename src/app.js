@@ -17,7 +17,7 @@ import adminDashboardRoutes from "./routes/admin.dashboard.routes.js";
 import { startFitnessSync } from "./cron/fitnessSync.js";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
-import { defaultRateLimiter, strictRateLimiter } from "./middlewares/rateLimiter.js";
+
 import logger from "./utils/logger.js";
 
 // Swagger docs
@@ -38,7 +38,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Apply default rate limiting to all routes
-app.use(defaultRateLimiter);
+
 
 // API Documentation - available at /api-docs
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -56,7 +56,7 @@ app.get("/health", (req, res) => {
 });
 
 // Auth routes with stricter rate limiting
-app.use("/auth", strictRateLimiter, authRoutes);
+app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
 app.use("/diagnostics", diagnosticsRoutes);
 app.use("/fit", fitRoutes);

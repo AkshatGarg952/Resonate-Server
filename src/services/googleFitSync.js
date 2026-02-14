@@ -5,11 +5,17 @@ import { oauth2Client } from "../googleClient.js";
 import { fetchSteps, parseSteps } from "./googleFitSteps.js";
 import { fetchSleep, parseSleep } from "./googleFitSleep.js";
 import { fetchWorkouts, parseWorkouts } from "./googleFitWorkouts.js";
+import { MemoryService } from "./memory.service.js";
+import { FitnessIngestor } from "./ingestors/fitness.ingestor.js";
 
 import {
   normalizeLast7Days,
   normalizeWorkoutLast7Days,
 } from "../utils/normalizeLast7Days.js";
+
+const memoryService = new MemoryService();
+const fitnessIngestor = new FitnessIngestor(memoryService);
+
 
 
 export async function syncGoogleFitForAllUsers() {
@@ -101,3 +107,35 @@ async function fetchAndSaveFitnessData(user) {
     { upsert: true }
   );
 }
+
+export async function pushDailyFitnessSummary(userId, memoryUserId = null) {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const fitnessData = await FitnessData.findOne({ userId, provider: "google_fit" });
+
+    if (!fitnessData) return;
+
+    const stepsEntry = fitnessData.stepsHistory.find(d => d.date === today);
+    const sleepEntry = fitnessData.sleepHistory.find(d => d.date === today);
+    const workoutsEntry = fitnessData.workoutHistory.find(d => d.date === today);
+
+    const summaryData = {
+      date: today,
+      steps: stepsEntry ? stepsEntry.steps : 0,
+      sleepHours: sleepEntry ? sleepEntry.sleepHours : 0,
+      workoutCount: workoutsEntry ? workoutsEntry.workouts.length : 0
+    };
+
+    if (!memoryUserId) {
+      const user = await User.findById(userId).select('firebaseUid');
+      memoryUserId = user?.firebaseUid || userId;
+    }
+
+    await fitnessIngestor.processDailySummary(memoryUserId, summaryData);
+    console.log(`Pushed daily fitness summary for user ${memoryUserId}`);
+
+  } catch (error) {
+    console.error(`Failed to push daily summary for user ${userId}:`, error.message);
+  }
+}
+

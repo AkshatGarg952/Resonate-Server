@@ -1,21 +1,26 @@
 const VALID_CATEGORIES = [
     'fitness.training',
+    'fitness.daily_summary',
     'nutrition.intake',
     'recovery.sleep',
     'recovery.stress',
+    'recovery.daily_log',
     'diagnostics.blood',
     'diagnostics.bca',
     'diagnostics.cgm',
     'intervention.plan',
-    'intervention.outcome'
+    'intervention.outcome',
+    'user.defined'
 ];
 
 const VALID_SOURCES = [
     'user_input',
     'coach_input',
     'device_sync',
+    'google_fit',
     'lab_import',
-    'system_generated'
+    'system_generated',
+    'admin_manual'
 ];
 
 const SOURCE_CONFIDENCE_MAP = {
@@ -28,6 +33,7 @@ const SOURCE_CONFIDENCE_MAP = {
 
 const CATEGORY_REQUIRED_FIELDS = {
     'fitness.training': ['workout_type', 'duration_mins', 'rpe'],
+    'fitness.daily_summary': ['date', 'steps', 'sleep_hours', 'workout_count'],
     'nutrition.intake': ['meal_type', 'calories', 'plan_adherence'],
     'recovery.sleep': ['hours', 'quality_score'],
     'recovery.stress': ['stress_score'],
@@ -165,7 +171,7 @@ export function sanitizePII(metadata) {
     return sanitized;
 }
 
-export function normalizeMetadata(metadata) {
+export function normalizeMetadata(metadata = {}) {
     const normalized = { ...metadata };
 
     if (!normalized.confidence && normalized.source) {
@@ -182,6 +188,10 @@ export function normalizeMetadata(metadata) {
 
     if (!normalized.tags) {
         normalized.tags = [];
+    }
+
+    if (!normalized.module_specific) {
+        normalized.module_specific = {};
     }
 
     return normalized;

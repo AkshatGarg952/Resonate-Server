@@ -61,6 +61,7 @@ export const generateWorkout = async (req, res) => {
                 plan: plan
             });
             await newWorkout.save();
+            return res.status(200).json({ status: "success", plan, workoutId: newWorkout._id });
         }
 
         res.status(200).json({ status: "success", plan });

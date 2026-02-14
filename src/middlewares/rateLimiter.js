@@ -76,7 +76,7 @@ export function rateLimiter(options = {}) {
  */
 export const strictRateLimiter = rateLimiter({
     windowMs: 60 * 1000, // 1 minute
-    max: 10,             // 10 requests per minute
+    max: 100,            // 100 requests per minute
 });
 
 /**
@@ -84,5 +84,5 @@ export const strictRateLimiter = rateLimiter({
  */
 export const defaultRateLimiter = rateLimiter({
     windowMs: 60 * 1000, // 1 minute
-    max: 100,            // 100 requests per minute
+    max: 1000,           // 1000 requests per minute
 });

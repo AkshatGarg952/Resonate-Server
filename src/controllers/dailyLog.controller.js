@@ -1,6 +1,9 @@
 import { DailyLog } from "../models/DailyLog.js";
+import { MemoryService } from "../services/memory.service.js";
+import { RecoveryIngestor } from "../services/ingestors/recovery.ingestor.js";
 
-
+const memoryService = new MemoryService();
+const recoveryIngestor = new RecoveryIngestor(memoryService);
 
 export const createOrUpdateDailyLog = async (req, res) => {
     try {
@@ -37,6 +40,21 @@ export const createOrUpdateDailyLog = async (req, res) => {
                 symptoms,
                 notes
             });
+        }
+
+        // Push to Memory Layer
+        try {
+            const logData = {
+                energyLevel: dailyLog.energyLevel,
+                stressLevel: dailyLog.stressLevel,
+                sleepQuality: dailyLog.sleepQuality,
+                mood: dailyLog.mood,
+                symptoms: dailyLog.symptoms,
+                notes: dailyLog.notes
+            };
+            await recoveryIngestor.processDailyLog(req.user.firebaseUid, logData);
+        } catch (memError) {
+            console.error("Memory ingestion failed for daily log:", memError);
         }
 
         res.status(200).json({ success: true, dailyLog });

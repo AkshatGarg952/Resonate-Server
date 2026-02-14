@@ -42,10 +42,13 @@ export class DiagnosticsIngestor {
     async processBCA(userId, bcaData) {
         const memoryText = `BCA: Weight ${bcaData.weight}kg, Body Fat ${bcaData.body_fat_percent}%, Muscle Mass ${bcaData.muscle_mass_kg}kg, Visceral Fat Level ${bcaData.visceral_fat_level}`;
 
+        const scanDate = bcaData.scan_date || bcaData.date || new Date().toISOString().split('T')[0];
+
         const metadata = {
             category: 'diagnostics.bca',
             source: bcaData.source || 'device_sync',
             module_specific: {
+                scan_date: scanDate,
                 weight_kg: bcaData.weight,
                 body_fat_percent: bcaData.body_fat_percent,
                 muscle_mass_kg: bcaData.muscle_mass_kg,
@@ -59,10 +62,13 @@ export class DiagnosticsIngestor {
     async processCGM(userId, cgmSummary) {
         const memoryText = `CGM Pattern: ${cgmSummary.description}`;
 
+        const period = cgmSummary.period || cgmSummary.date_range || cgmSummary.range || 'unspecified';
+
         const metadata = {
             category: 'diagnostics.cgm',
             source: 'device_sync',
             module_specific: {
+                period,
                 avg_glucose: cgmSummary.avg_glucose_mg_dl,
                 time_in_range_percent: cgmSummary.time_in_range_percent,
                 spike_count: cgmSummary.spike_count,

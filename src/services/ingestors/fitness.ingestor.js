@@ -93,6 +93,24 @@ export class FitnessIngestor {
             }
         };
     }
+    async processDailySummary(userId, summaryData) {
+        // summaryData: { date, steps, sleepHours, workoutCount }
+        const memoryText = `Daily Activity (${summaryData.date}): ${summaryData.steps} steps, ${summaryData.sleepHours}h sleep, ${summaryData.workoutCount} workouts.`;
+
+        const metadata = {
+            category: 'fitness.daily_summary',
+            source: 'device_sync',
+            timestamp: new Date().toISOString(),
+            module_specific: {
+                date: summaryData.date,
+                steps: summaryData.steps,
+                sleep_hours: summaryData.sleepHours,
+                workout_count: summaryData.workoutCount
+            }
+        };
+
+        return await this.memoryService.addMemory(userId, memoryText, metadata);
+    }
 }
 
 

@@ -11,7 +11,7 @@ export class InterventionService {
      * @param {string} userId - User ID
      * @param {Object} interventionData - Intervention details
      */
-    async createIntervention(userId, interventionData) {
+    async createIntervention(userId, interventionData, memoryUserId = userId) {
         try {
             const intervention = new Intervention({
                 ...interventionData,
@@ -39,7 +39,8 @@ export class InterventionService {
                 }
             };
 
-            await this.memoryService.addMemory(userId, memoryText, metadata);
+            const targetUserId = memoryUserId || userId;
+            await this.memoryService.addMemory(targetUserId, memoryText, metadata);
 
             return intervention;
         } catch (error) {
@@ -66,7 +67,7 @@ export class InterventionService {
      * @param {string} interventionId 
      * @param {Object} outcomeData 
      */
-    async recordOutcome(interventionId, outcomeData) {
+    async recordOutcome(interventionId, outcomeData, memoryUserId = null) {
         try {
             const intervention = await Intervention.findById(interventionId);
             if (!intervention) {
@@ -106,7 +107,8 @@ export class InterventionService {
                 }
             };
 
-            await this.memoryService.addMemory(intervention.user.toString(), memoryText, metadata);
+            const targetUserId = memoryUserId || intervention.user.toString();
+            await this.memoryService.addMemory(targetUserId, memoryText, metadata);
 
             return intervention;
         } catch (error) {
@@ -158,7 +160,7 @@ export class InterventionService {
      * @param {string} interventionId 
      * @param {string} reason 
      */
-    async stopIntervention(interventionId, reason) {
+    async stopIntervention(interventionId, reason, memoryUserId = null) {
         try {
             const intervention = await Intervention.findById(interventionId);
             if (!intervention) throw new Error('Intervention not found');
@@ -171,7 +173,8 @@ export class InterventionService {
 
             // Mem0 update
             const memoryText = `Intervention Discontinued: ${intervention.type} - ${intervention.recommendation}. Reason: ${reason}`;
-            await this.memoryService.addMemory(intervention.user.toString(), memoryText, {
+            const targetUserId = memoryUserId || intervention.user.toString();
+            await this.memoryService.addMemory(targetUserId, memoryText, {
                 category: 'intervention.outcome',
                 source: 'user_input',
                 timestamp: new Date().toISOString(),

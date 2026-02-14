@@ -1,9 +1,25 @@
-
-import { mem0Config } from '../config/mem0.config.js';
 import { MemoryService } from '../services/memory.service.js';
 import { logger } from '../utils/memoryLogger.js';
+import { User } from '../models/User.js';
 
 const memoryService = new MemoryService();
+
+const looksLikeObjectId = (value) => /^[a-fA-F0-9]{24}$/.test(value || '');
+
+const resolveMemoryUser = async (identifier) => {
+    if (!identifier) return null;
+
+    let user = await User.findOne({ firebaseUid: identifier }).select('_id firebaseUid email');
+    if (user) return user;
+
+    if (looksLikeObjectId(identifier)) {
+        user = await User.findById(identifier).select('_id firebaseUid email');
+        if (user) return user;
+    }
+
+    user = await User.findOne({ email: identifier }).select('_id firebaseUid email');
+    return user || null;
+};
 
 /**
  * GET /api/admin/dashboard/stats
@@ -41,16 +57,27 @@ export const getDashboardStats = async (req, res) => {
  */
 export const getUserMemoryView = async (req, res) => {
     try {
-        const { userId } = req.params;
+        const { userId: requestedUserId } = req.params;
+        const user = await resolveMemoryUser(requestedUserId);
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const memoryUserId = user.firebaseUid;
 
         // Fetch all memories for the user
-        const memories = await memoryService.getAllMemories(userId);
+        const memories = await memoryService.getAllMemories(memoryUserId);
 
         res.status(200).json({
             success: true,
-            userId,
-            count: memories.length,
-            memories: memories
+            requestedUserId,
+            userId: memoryUserId,
+            memoryUserId,
+            mongoUserId: user._id,
+            email: user.email || null,
+            count: memories?.count ?? memories?.results?.length ?? 0,
+            memories: memories?.results || []
         });
     } catch (error) {
         logger.logError('ADMIN_DASHBOARD', error, { userId: req.params.userId });

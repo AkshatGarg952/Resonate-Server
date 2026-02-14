@@ -64,7 +64,20 @@ export const getMemories = async (req, res) => {
 
     const { category } = req.query;
 
-    const memories = await memoryService.getAllMemories(req.user.firebaseUid, { category });
+    // Map client categories to Mem0 specific categories
+    const categoryMap = {
+      'workout': 'fitness.training',
+      'diet': 'nutrition.intake',
+      'health': 'diagnostics.blood', // Defaulting to blood for now, could be improved
+      'recovery': 'recovery.sleep',
+      // 'gym' -> 'fitness.training' ?
+    };
+
+    const mappedCategory = categoryMap[category] || category;
+
+    console.log(`[getMemories] Fetching memories for user ${req.user.firebaseUid}. Category: ${category} -> ${mappedCategory}`);
+
+    const memories = await memoryService.getAllMemories(req.user.firebaseUid, { category: mappedCategory });
 
     return res.json(memories);
   } catch (error) {

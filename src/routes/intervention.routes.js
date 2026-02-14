@@ -7,7 +7,8 @@ import {
     stopIntervention,
     updateIntervention,
     recordOutcome,
-    getInterventionAnalysis
+    getInterventionAnalysis,
+    suggestInterventions
 } from "../controllers/intervention.controller.js";
 
 const router = express.Router();
@@ -19,6 +20,8 @@ router.get("/", isAuthenticated, getInterventions);
 router.post("/:id/outcome", isAuthenticated, recordOutcome);
 router.get("/:id/analysis", isAuthenticated, getInterventionAnalysis);
 
+
+router.post("/suggest", isAuthenticated, suggestInterventions);
 router.patch("/:id/stop", isAuthenticated, stopIntervention);
 router.put("/:id", isAuthenticated, updateIntervention);
 

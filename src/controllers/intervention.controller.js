@@ -13,7 +13,11 @@ export const createIntervention = async (req, res) => {
         const userId = req.user._id;
         const interventionData = req.body;
 
-        const intervention = await interventionService.createIntervention(userId, interventionData);
+        const intervention = await interventionService.createIntervention(
+            userId,
+            interventionData,
+            req.user.firebaseUid
+        );
 
         res.status(201).json({ success: true, intervention });
     } catch (error) {
@@ -45,7 +49,11 @@ export const recordOutcome = async (req, res) => {
         const { id } = req.params;
         const outcomeData = req.body;
 
-        const intervention = await interventionService.recordOutcome(id, outcomeData);
+        const intervention = await interventionService.recordOutcome(
+            id,
+            outcomeData,
+            req.user.firebaseUid
+        );
 
         res.status(200).json({ success: true, intervention });
     } catch (error) {
@@ -94,7 +102,11 @@ export const stopIntervention = async (req, res) => {
     try {
         const { id } = req.params;
         const { reason } = req.body;
-        const intervention = await interventionService.stopIntervention(id, reason);
+        const intervention = await interventionService.stopIntervention(
+            id,
+            reason,
+            req.user.firebaseUid
+        );
         res.status(200).json({ success: true, intervention });
     } catch (error) {
         console.error("Error stopping intervention:", error);
@@ -114,5 +126,45 @@ export const updateIntervention = async (req, res) => {
     } catch (error) {
         console.error("Error updating intervention:", error);
         res.status(500).json({ success: false, message: "Failed to update intervention", error: error.message });
+    }
+};
+import { MemoryContextBuilder } from '../services/memory/memoryContext.builder.js';
+import { User } from '../models/User.js';
+import axios from 'axios';
+
+/**
+ * Suggest interventions based on memory context
+ */
+export const suggestInterventions = async (req, res) => {
+    try {
+        const userId = req.user.firebaseUid;
+        const user = await User.findOne({ firebaseUid: userId });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const memoryContextBuilder = new MemoryContextBuilder();
+        const memoryContext = await memoryContextBuilder.buildMemoryContext(userId, 'intervention_suggestion');
+
+        const microserviceUrl = process.env.MICROSERVICE_URL || "http://127.0.0.1:10000";
+
+        // Call microservice
+        const response = await axios.post(`${microserviceUrl}/generate-interventions`, {
+            userId: user._id,
+            age: user.age,
+            gender: user.gender,
+            memoryContext
+        });
+
+        // Expected response: { suggestions: [ { title, description, type, duration, ... } ] }
+        const suggestions = response.data.suggestions || [];
+
+        res.status(200).json({ success: true, suggestions, contextUsed: memoryContext });
+
+    } catch (error) {
+        console.error("Error suggesting interventions:", error);
+        // Fallback if AI fails? Or just return error
+        res.status(500).json({ success: false, message: "Failed to generate suggestions", error: error.message });
     }
 };

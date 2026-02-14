@@ -38,6 +38,9 @@ export class MemoryContextBuilder {
                 case 'insights':
                     await this._enrichInsightsContext(userId, context);
                     break;
+                case 'intervention_suggestion':
+                    await this._enrichInterventionContext(userId, context);
+                    break;
                 default:
                     logger.warn('BUILD_CONTEXT', `Unknown intent: ${intent}`);
             }
@@ -125,9 +128,33 @@ export class MemoryContextBuilder {
             }
         }
 
+        // Process stress
+        if (stressData.results.length > 0) {
+            context.key_facts.push(...stressData.results.map(r => `Stress: ${r.memory}`));
+
+            const stressScores = stressData.results
+                .map(r => r.metadata?.module_specific?.stress_score)
+                .filter(s => typeof s === 'number');
+
+            if (stressScores.length) {
+                const avgStress = stressScores.reduce((a, b) => a + b, 0) / stressScores.length;
+                context.trends.avg_stress_score = Math.round(avgStress * 10) / 10;
+            }
+        }
+
+
         // Process interventions
         if (activeInterventions.results.length > 0) {
             context.intervention_history.push(...activeInterventions.results.map(r => r.memory));
+        }
+
+        // 5. Get recent daily logs (Mood/Symptoms)
+        const dailyLogs = await this.memoryService.searchMemory(userId, 'daily log mood symptoms energy', {
+            category: 'recovery.daily_log'
+        }, 5);
+
+        if (dailyLogs.results.length > 0) {
+            context.recent_events.push(...dailyLogs.results.map(r => `Daily Log: ${r.memory}`));
         }
     }
 
@@ -146,7 +173,12 @@ export class MemoryContextBuilder {
             category: 'intervention.plan'
         }, 3);
 
-        // 3. Get insights/trends (if any exist in generic store, or compute from logs)
+        // 3. Get recent daily logs (Gut health, energy)
+        const dailyLogs = await this.memoryService.searchMemory(userId, 'daily log digestion bloating energy', {
+            category: 'recovery.daily_log'
+        }, 5);
+
+        // 4. Get insights/trends (if any exist in generic store, or compute from logs)
         // For now, rely on logs
 
         if (mealLogs.results.length > 0) {
@@ -164,8 +196,63 @@ export class MemoryContextBuilder {
             context.key_facts.push("No recent nutrition logs found.");
         }
 
+        if (dailyLogs.results.length > 0) {
+            context.recent_events.push(...dailyLogs.results.map(r => `Daily Log: ${r.memory}`));
+        }
+
         if (interventions.results.length > 0) {
             context.intervention_history.push(...interventions.results.map(r => r.memory));
+        }
+    }
+
+    /**
+     * Enrich context for intervention suggestions
+     * Focus: Holistic view of health, adherence, and recent issues
+     */
+    async _enrichInterventionContext(userId, context) {
+        // 1. Recent Health Trends (Sleep, Stress, Weight)
+        const recoveryData = await this.memoryService.searchMemory(userId, 'sleep stress recovery', {
+            category: 'recovery.sleep'
+        }, 7);
+
+        // 2. Daily Logs (Symptoms, Mood)
+        const dailyLogs = await this.memoryService.searchMemory(userId, 'symptoms mood energy pain', {
+            category: 'recovery.daily_log'
+        }, 7);
+
+        // 3. Adherence Issues
+        const adherenceLogs = await this.memoryService.searchMemory(userId, 'adherence missed skipped cheat', {}, 5);
+
+        // 4. Latest Diagnostics
+        const bloodTest = await this.memoryService.searchMemory(userId, 'blood test results', {
+            category: 'diagnostics.blood'
+        }, 1);
+
+        // 5. Active Interventions (to avoid duplicates)
+        const activeInterventions = await this.memoryService.searchMemory(userId, 'active health intervention', {
+            category: 'intervention.plan'
+        }, 5);
+
+        // --- Structure Data ---
+
+        if (recoveryData.results.length > 0) {
+            context.recent_events.push(...recoveryData.results.map(r => `Recovery: ${r.memory}`));
+        }
+
+        if (dailyLogs.results.length > 0) {
+            context.recent_events.push(...dailyLogs.results.map(r => `Daily Log: ${r.memory}`));
+        }
+
+        if (adherenceLogs.results.length > 0) {
+            context.key_facts.push(...adherenceLogs.results.map(r => `Adherence Note: ${r.memory}`));
+        }
+
+        if (bloodTest.results.length > 0) {
+            context.key_facts.push(`Latest Blood Test: ${bloodTest.results[0].memory}`);
+        }
+
+        if (activeInterventions.results.length > 0) {
+            context.active_interventions = activeInterventions.results.map(r => r.memory);
         }
     }
 
