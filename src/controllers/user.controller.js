@@ -22,28 +22,46 @@ export const updateProfile = async (req, res) => {
     const {
       name,
       gender,
-      age,
-      height,
-      weight,
+      dateOfBirth,
+      heightCm,
+      weightKg,
+      height, // legacy alias
+      weight, // legacy alias
       dietType,
       goals,
       hasMedicalCondition,
       medicalConditions,
+      phone,
+      menstrualProfile
     } = req.body;
+
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (gender !== undefined) updates.gender = gender;
+    if (dietType !== undefined) updates.dietType = dietType;
+    if (goals !== undefined) updates.goals = goals;
+    if (hasMedicalCondition !== undefined) updates.hasMedicalCondition = hasMedicalCondition;
+    if (medicalConditions !== undefined) updates.medicalConditions = medicalConditions;
+    if (phone !== undefined) updates.phone = phone;
+    if (menstrualProfile !== undefined) updates.menstrualProfile = menstrualProfile;
+
+    if (dateOfBirth !== undefined) {
+      updates.dateOfBirth = dateOfBirth || null;
+    }
+
+    const resolvedHeightCm = heightCm ?? height;
+    if (resolvedHeightCm !== undefined) {
+      updates.heightCm = resolvedHeightCm === null || resolvedHeightCm === "" ? null : Number(resolvedHeightCm);
+    }
+
+    const resolvedWeightKg = weightKg ?? weight;
+    if (resolvedWeightKg !== undefined) {
+      updates.weightKg = resolvedWeightKg === null || resolvedWeightKg === "" ? null : Number(resolvedWeightKg);
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
-      {
-        name,
-        gender,
-        age,
-        height,
-        weight,
-        dietType,
-        goals,
-        hasMedicalCondition,
-        medicalConditions,
-      },
+      updates,
       { new: true, runValidators: true }
     );
 
