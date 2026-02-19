@@ -3,9 +3,9 @@ import mongoose from "mongoose";
 const biomarkerSchema = new mongoose.Schema({
   value: { type: Number, default: null },
   isAvailable: {
-  type: Boolean,
-  default: true
-},
+    type: Boolean,
+    default: true
+  },
   status: {
     type: String,
     enum: ["good", "bad", "unavailable", "unknown"],
@@ -21,19 +21,25 @@ const diagnosticsSchema = new mongoose.Schema(
   {
     userId: { type: String, required: true },
     pdfUrl: { type: String, required: true },
-    
+
     biomarkers: {
       type: Map,
       of: biomarkerSchema,
       default: {}
     },
-    
+
 
     biomarkersByCategory: {
       type: mongoose.Schema.Types.Mixed,
       default: {}
     },
-    
+
+    category: {
+      type: String,
+      enum: ["blood", "urine", "bca", "cgm", "other"],
+      default: "blood"
+    },
+
     status: { type: String, enum: ["pending", "completed", "failed"], default: "pending" }
   },
   { timestamps: true }

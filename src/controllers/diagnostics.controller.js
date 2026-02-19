@@ -48,9 +48,12 @@ export const uploadDiagnostics = async (req, res) => {
 
           const pdfUrl = result.secure_url;
 
+          const category = req.body.category || 'blood';
+
           const record = await Diagnostics.create({
             userId,
             pdfUrl,
+            category,
             status: "pending",
           });
 
@@ -98,11 +101,11 @@ export const uploadDiagnostics = async (req, res) => {
                 previous_value: null // TODO: Fetch previous record to compare
               }));
 
-              await diagnosticsIngestor.processBloodReport(userId, {
+              await diagnosticsIngestor.processReport(userId, {
                 date: new Date().toISOString().split('T')[0],
                 markers: memoryMarkers
-              });
-              logger.info(`Pushed blood report memory for user ${userId}`);
+              }, category);
+              logger.info(`Pushed ${category} report memory for user ${userId}`);
             } catch (memoryError) {
               console.error("Memory push error:", memoryError);
               // Don't fail the request if memory push fails
@@ -174,9 +177,16 @@ export const getLatestDiagnostics = async (req, res) => {
 export const getDiagnosticsHistory = async (req, res) => {
   try {
     const userId = req.user.firebaseUid;
-    const history = await Diagnostics.find({ userId })
+    const { category } = req.query;
+
+    const query = { userId };
+    if (category && category !== 'all') {
+      query.category = category;
+    }
+
+    const history = await Diagnostics.find(query)
       .sort({ createdAt: -1 })
-      .select("biomarkers biomarkersByCategory status pdfUrl updatedAt createdAt");
+      .select("biomarkers biomarkersByCategory status category pdfUrl updatedAt createdAt");
 
     return res.json(history);
   } catch (error) {

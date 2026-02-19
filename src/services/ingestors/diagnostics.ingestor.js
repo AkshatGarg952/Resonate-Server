@@ -3,7 +3,7 @@ export class DiagnosticsIngestor {
         this.memoryService = memoryService;
     }
 
-    async processBloodReport(userId, reportData) {
+    async processReport(userId, reportData, category = 'blood') {
         // Expects reportData.markers to be an array of { name, value, unit, status, previous_value }
         const keyMarkers = reportData.markers.filter(m => m.is_key_marker || m.status !== 'normal');
 
@@ -17,7 +17,8 @@ export class DiagnosticsIngestor {
             return text;
         });
 
-        const memoryText = `Blood Test ${reportData.date}: ${markerTexts.join(', ')}`;
+        const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1);
+        const memoryText = `${categoryLabel} Test ${reportData.date}: ${markerTexts.join(', ')}`;
 
         // flatten markers for metadata queryability
         const flatMarkers = {};
@@ -28,7 +29,7 @@ export class DiagnosticsIngestor {
         });
 
         const metadata = {
-            category: 'diagnostics.blood',
+            category: `diagnostics.${category}`,
             source: 'lab_import',
             module_specific: {
                 test_date: reportData.date,
