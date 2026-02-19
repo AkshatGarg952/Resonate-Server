@@ -27,8 +27,13 @@ export function startFitnessSync() {
 
       console.log(`Pushing daily summaries for ${users.length} users`);
 
-      for (const user of users) {
-        await pushDailyFitnessSummary(user._id, user.firebaseUid);
+      // Process in parallel batches of 10 (was sequential — 1 at a time)
+      const BATCH_SIZE = 10;
+      for (let i = 0; i < users.length; i += BATCH_SIZE) {
+        const batch = users.slice(i, i + BATCH_SIZE);
+        await Promise.allSettled(
+          batch.map((user) => pushDailyFitnessSummary(user._id, user.firebaseUid))
+        );
       }
 
       console.log("Google Fit sync & memory push completed");

@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import compression from "compression";
+import helmet from "helmet";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import diagnosticsRoutes from "./routes/diagnostics.routes.js";
@@ -17,6 +19,7 @@ import adminDashboardRoutes from "./routes/admin.dashboard.routes.js";
 import { startFitnessSync } from "./cron/fitnessSync.js";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import { defaultRateLimiter, strictRateLimiter } from "./middlewares/rateLimiter.js";
 
 import logger from "./utils/logger.js";
 
@@ -28,16 +31,23 @@ dotenv.config();
 
 const app = express();
 
+// Security headers (must be first)
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// Gzip compression — reduces JSON payload sizes by 60-80%
+app.use(compression());
+
 app.use(cors({
   origin: [process.env.CLIENT_URL_1, process.env.CLIENT_URL_2],
   credentials: true
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 
 app.use(cookieParser());
 
-// Apply default rate limiting to all routes
+// Apply global rate limiter to ALL routes
+app.use(defaultRateLimiter);
 
 
 // API Documentation - available at /api-docs
