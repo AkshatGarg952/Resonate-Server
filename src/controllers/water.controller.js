@@ -1,4 +1,9 @@
 import { FitnessData } from "../models/FitnessData.js";
+import { MemoryService } from "../services/memory.service.js";
+import { RecoveryIngestor } from "../services/ingestors/recovery.ingestor.js";
+
+const memoryService = new MemoryService();
+const recoveryIngestor = new RecoveryIngestor(memoryService);
 
 export const getWaterData = async (req, res) => {
     try {
@@ -7,7 +12,7 @@ export const getWaterData = async (req, res) => {
         let fitnessData = await FitnessData.findOne({ userId, provider: "resonate" });
 
         if (!fitnessData) {
-           
+
             fitnessData = await FitnessData.create({
                 userId,
                 provider: "resonate",
@@ -50,11 +55,11 @@ export const logWater = async (req, res) => {
         let dayEntryIndex = fitnessData.waterHistory.findIndex(w => w.date === targetDate);
 
         if (dayEntryIndex > -1) {
-          
+
 
             fitnessData.waterHistory[dayEntryIndex].amountMl += amountToAdd;
         } else {
-           
+
             fitnessData.waterHistory.push({
                 date: targetDate,
                 amountMl: amountToAdd,
@@ -65,6 +70,19 @@ export const logWater = async (req, res) => {
         await fitnessData.save();
 
         const updatedEntry = fitnessData.waterHistory.find(w => w.date === targetDate);
+
+        // Push to Memory Layer (fail-open)
+        try {
+            const totalForDay = updatedEntry?.amountMl || amountToAdd;
+            await recoveryIngestor.processWaterEvent(
+                req.user.firebaseUid,
+                totalForDay,
+                targetDate
+            );
+        } catch (memError) {
+            console.error("Memory ingestion failed for water log:", memError.message);
+        }
+
         res.json(updatedEntry);
 
     } catch (error) {

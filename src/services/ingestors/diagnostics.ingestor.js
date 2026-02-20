@@ -31,6 +31,7 @@ export class DiagnosticsIngestor {
         const metadata = {
             category: `diagnostics.${category}`,
             source: 'lab_import',
+            timestamp: new Date().toISOString(),
             module_specific: {
                 test_date: reportData.date,
                 ...flatMarkers
@@ -48,6 +49,7 @@ export class DiagnosticsIngestor {
         const metadata = {
             category: 'diagnostics.bca',
             source: bcaData.source || 'device_sync',
+            timestamp: new Date().toISOString(),
             module_specific: {
                 scan_date: scanDate,
                 weight_kg: bcaData.weight,
@@ -68,6 +70,7 @@ export class DiagnosticsIngestor {
         const metadata = {
             category: 'diagnostics.cgm',
             source: 'device_sync',
+            timestamp: new Date().toISOString(),
             module_specific: {
                 period,
                 avg_glucose: cgmSummary.avg_glucose_mg_dl,

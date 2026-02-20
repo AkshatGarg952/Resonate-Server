@@ -1,5 +1,9 @@
+// ── All imports at the top ─────────────────────────────────────────────────
 import { InterventionService } from '../services/intervention.service.js';
 import { MemoryService } from '../services/memory.service.js';
+import { MemoryContextBuilder } from '../services/memory/memoryContext.builder.js';
+import { User } from '../models/User.js';
+import axios from 'axios';
 
 const memoryService = new MemoryService();
 const interventionService = new InterventionService(memoryService);
@@ -128,9 +132,6 @@ export const updateIntervention = async (req, res) => {
         res.status(500).json({ success: false, message: "Internal server error" });
     }
 };
-import { MemoryContextBuilder } from '../services/memory/memoryContext.builder.js';
-import { User } from '../models/User.js';
-import axios from 'axios';
 
 /**
  * Suggest interventions based on memory context

@@ -18,17 +18,12 @@ export class MemoryHygieneService {
      */
     async isDuplicate(userId, text, metadata) {
         try {
-            // 1. Exact match check on category and timestamp if available
-            // This is a heuristic. Mem0 might not give us exact timestamp filtering easily depending on version,
-            // so we rely on semantic search for the text.
-
             const searchResults = await this.memoryService.searchMemory(userId, text, {
                 category: metadata.category
             }, 5);
 
             if (!searchResults || !searchResults.results) return false;
 
-            // Check if any result is highly similar strings
             for (const result of searchResults.results) {
                 if (result.score > 0.95 && result.memory === text) {
                     logger.warn('HYGIENE', 'Duplicate memory detected', { userId, text });
@@ -57,22 +52,85 @@ export class MemoryHygieneService {
      * Delete memories older than retention period
      * @param {string} userId
      * @param {number} retentionDays default 730 (2 years)
+     * @returns {Promise<{ deleted: number, failed: number }>}
      */
     async cleanupOldMemories(userId, retentionDays = 730) {
-        // Implementation depends on Mem0 capability to filter by date in bulk delete
-        // If not available, we might need to search and delete
-        // Placeholder for now
-        logger.info('HYGIENE', `Starting cleanup for user ${userId}`);
-        return { deleted: 0 };
+        logger.info('HYGIENE', `Starting old memory cleanup for user ${userId} (retention: ${retentionDays} days)`);
+
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+        let deleted = 0;
+        let failed = 0;
+
+        try {
+            const { results } = await this.memoryService.getAllMemories(userId);
+
+            const oldMemories = results.filter(record => {
+                const createdAt = record.created_at ? new Date(record.created_at) : null;
+                return createdAt && createdAt < cutoffDate;
+            });
+
+            logger.info('HYGIENE', `Found ${oldMemories.length} memories older than ${retentionDays} days`, { userId });
+
+            for (const record of oldMemories) {
+                try {
+                    await this.memoryService.deleteMemory(record.id);
+                    deleted++;
+                } catch (err) {
+                    logger.warn('HYGIENE', `Failed to delete memory ${record.id}`, { error: err.message });
+                    failed++;
+                }
+            }
+
+            logger.info('HYGIENE', `Old memory cleanup complete`, { userId, deleted, failed });
+            return { deleted, failed };
+
+        } catch (error) {
+            logger.error('HYGIENE', 'cleanupOldMemories failed', { userId, error: error.message });
+            return { deleted, failed };
+        }
     }
 
     /**
      * Delete low confidence memories
      * @param {string} userId
      * @param {number} threshold default 0.7
+     * @returns {Promise<{ deleted: number, failed: number }>}
      */
     async cleanupLowConfidence(userId, threshold = 0.7) {
-        // Placeholder
-        return { deleted: 0 };
+        logger.info('HYGIENE', `Starting low-confidence cleanup for user ${userId} (threshold: ${threshold})`);
+
+        let deleted = 0;
+        let failed = 0;
+
+        try {
+            const { results } = await this.memoryService.getAllMemories(userId);
+
+            const lowConfidenceMemories = results.filter(record => {
+                const confidence = record.metadata?.confidence;
+                // Only delete if confidence is explicitly set and below threshold
+                return typeof confidence === 'number' && confidence < threshold;
+            });
+
+            logger.info('HYGIENE', `Found ${lowConfidenceMemories.length} low-confidence memories`, { userId, threshold });
+
+            for (const record of lowConfidenceMemories) {
+                try {
+                    await this.memoryService.deleteMemory(record.id);
+                    deleted++;
+                } catch (err) {
+                    logger.warn('HYGIENE', `Failed to delete memory ${record.id}`, { error: err.message });
+                    failed++;
+                }
+            }
+
+            logger.info('HYGIENE', `Low-confidence cleanup complete`, { userId, deleted, failed });
+            return { deleted, failed };
+
+        } catch (error) {
+            logger.error('HYGIENE', 'cleanupLowConfidence failed', { userId, error: error.message });
+            return { deleted, failed };
+        }
     }
 }

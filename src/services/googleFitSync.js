@@ -7,6 +7,7 @@ import { fetchSleep, parseSleep } from "./googleFitSleep.js";
 import { fetchWorkouts, parseWorkouts } from "./googleFitWorkouts.js";
 import { MemoryService } from "./memory.service.js";
 import { FitnessIngestor } from "./ingestors/fitness.ingestor.js";
+import { RecoveryIngestor } from "./ingestors/recovery.ingestor.js";
 
 import {
   normalizeLast7Days,
@@ -15,6 +16,7 @@ import {
 
 const memoryService = new MemoryService();
 const fitnessIngestor = new FitnessIngestor(memoryService);
+const recoveryIngestor = new RecoveryIngestor(memoryService);
 
 
 
@@ -131,11 +133,26 @@ export async function pushDailyFitnessSummary(userId, memoryUserId = null) {
       memoryUserId = user?.firebaseUid || userId;
     }
 
+    // Push daily fitness summary (steps + workout count)
     await fitnessIngestor.processDailySummary(memoryUserId, summaryData);
     console.log(`Pushed daily fitness summary for user ${memoryUserId}`);
+
+    // Push individual sleep entry to recovery.sleep so MemoryContextBuilder can query it
+    if (sleepEntry && sleepEntry.sleepHours > 0) {
+      try {
+        await recoveryIngestor.processSleepEvent(memoryUserId, {
+          hours: sleepEntry.sleepHours,
+          quality_score: 0, // Google Fit does not provide quality score
+          interruptions: 0,
+          source: 'google_fit'
+        });
+        console.log(`Pushed sleep memory for user ${memoryUserId}: ${sleepEntry.sleepHours}h`);
+      } catch (sleepMemError) {
+        console.error(`Sleep memory push failed for user ${memoryUserId}:`, sleepMemError.message);
+      }
+    }
 
   } catch (error) {
     console.error(`Failed to push daily summary for user ${userId}:`, error.message);
   }
 }
-

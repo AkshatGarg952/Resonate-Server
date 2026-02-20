@@ -99,19 +99,33 @@ export const uploadDiagnostics = async (req, res) => {
 
             // Push to Memory Layer
             try {
-              const memoryMarkers = Object.entries(processed.all).map(([key, data]) => ({
-                name: key,
-                value: data.value,
-                unit: data.unit,
-                status: data.status,
-                previous_value: null // TODO: Fetch previous record to compare
-              }));
+              if (category === 'cgm') {
+                // Build a CGM summary from biomarkers for the dedicated processCGM ingestor
+                const cgmSummary = {
+                  description: `CGM data from report on ${new Date().toISOString().split('T')[0]}`,
+                  period: new Date().toISOString().split('T')[0],
+                  avg_glucose_mg_dl: processed.all?.avg_glucose?.value ?? null,
+                  time_in_range_percent: processed.all?.time_in_range?.value ?? null,
+                  spike_count: processed.all?.spike_count?.value ?? null,
+                  fasting_glucose_mg_dl: processed.all?.fasting_glucose?.value ?? null
+                };
+                await diagnosticsIngestor.processCGM(userId, cgmSummary);
+                logger.info(`Pushed CGM diagnostics memory for user ${userId}`);
+              } else {
+                const memoryMarkers = Object.entries(processed.all).map(([key, data]) => ({
+                  name: key,
+                  value: data.value,
+                  unit: data.unit,
+                  status: data.status,
+                  previous_value: null // TODO: Fetch previous record to compare
+                }));
 
-              await diagnosticsIngestor.processReport(userId, {
-                date: new Date().toISOString().split('T')[0],
-                markers: memoryMarkers
-              }, category);
-              logger.info(`Pushed ${category} report memory for user ${userId}`);
+                await diagnosticsIngestor.processReport(userId, {
+                  date: new Date().toISOString().split('T')[0],
+                  markers: memoryMarkers
+                }, category);
+                logger.info(`Pushed ${category} report memory for user ${userId}`);
+              }
             } catch (memoryError) {
               console.error("Memory push error:", memoryError);
               // Don't fail the request if memory push fails
@@ -243,6 +257,25 @@ export const fetchDiagnosticsFromAPI = async (req, res) => {
       biomarkersByCategory: processed.byCategory,
       status: "completed"
     });
+
+    // Push to Memory Layer (same pattern as uploadDiagnostics)
+    try {
+      const memoryMarkers = Object.entries(processed.all).map(([key, data]) => ({
+        name: key,
+        value: data.value,
+        unit: data.unit,
+        status: data.status,
+        previous_value: null
+      }));
+
+      await diagnosticsIngestor.processReport(userId, {
+        date: new Date().toISOString().split('T')[0],
+        markers: memoryMarkers
+      }, 'blood');
+      logger.info(`Pushed blood report memory for user ${userId} (from Lab API)`);
+    } catch (memoryError) {
+      console.error("Memory push error (Lab API):", memoryError);
+    }
 
     return res.json({
       message: "Data fetched & processed successfully",

@@ -82,6 +82,26 @@ export class RecoveryIngestor {
     return await this.memoryService.addMemory(userId, memoryText, metadata);
   }
 
+  async processWaterEvent(userId, amountMl, date) {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    const amountL = (amountMl / 1000).toFixed(2);
+
+    const memoryText = `Water intake: ${amountMl}ml (${amountL}L) on ${targetDate}`;
+
+    const metadata = {
+      category: 'recovery.daily_log',
+      source: 'user_input',
+      timestamp: new Date().toISOString(),
+      module_specific: {
+        water_ml: amountMl,
+        water_liters: parseFloat(amountL),
+        date: targetDate
+      }
+    };
+
+    return await this.memoryService.addMemory(userId, memoryText, metadata);
+  }
+
   _formatDuration(hours) {
     const h = Math.floor(hours);
     const m = Math.round((hours - h) * 60);
