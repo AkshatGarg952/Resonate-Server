@@ -2,6 +2,7 @@ import { Diagnostics } from "../models/Diagnostics.js";
 import { User } from "../models/User.js";
 import cloudinary from "../config/cloudinary.js";
 import axios from "axios";
+import NodeCache from "node-cache";
 import sendReportReady from "../services/notification.js";
 import dotenv from "dotenv";
 import { processBiomarkers } from "../utils/biomarkerReference.js";
@@ -16,6 +17,12 @@ dotenv.config();
 const memoryService = new MemoryService();
 const diagnosticsIngestor = new DiagnosticsIngestor(memoryService);
 
+// In-memory cache for diagnostics history — 30 second TTL
+// Dramatically reduces MongoDB load during dashboard refreshes at scale
+const diagCache = new NodeCache({ stdTTL: 30, checkperiod: 60 });
+
+// Helper to build the cache key for a user's diagnostics history
+const diagCacheKey = (userId, category) => `diag_history:${userId}:${category || 'all'}`;
 
 
 export const uploadDiagnostics = async (req, res) => {
@@ -131,6 +138,11 @@ export const uploadDiagnostics = async (req, res) => {
               // Don't fail the request if memory push fails
             }
 
+            // Invalidate diagnostics history cache for this user so they
+            // immediately see the new upload on their next dashboard load
+            diagCache.del(diagCacheKey(userId, null));
+            diagCache.del(diagCacheKey(userId, record.category));
+
             return res.json({
               message: "Report uploaded and parsed successfully",
               diagnostics: {
@@ -200,6 +212,14 @@ export const getDiagnosticsHistory = async (req, res) => {
     const userId = req.user.firebaseUid;
     const { category } = req.query;
 
+    // Check cache first — avoids hammering MongoDB on every dashboard refresh
+    const cacheKey = diagCacheKey(userId, category);
+    const cached = diagCache.get(cacheKey);
+    if (cached !== undefined) {
+      logger.info(`diagCache HIT for user ${userId}`);
+      return res.json(cached);
+    }
+
     const query = { userId };
     if (category && category !== 'all') {
       query.category = category;
@@ -209,6 +229,7 @@ export const getDiagnosticsHistory = async (req, res) => {
       .sort({ createdAt: -1 })
       .select("biomarkers biomarkersByCategory status category pdfUrl updatedAt createdAt");
 
+    diagCache.set(cacheKey, history);
     return res.json(history);
   } catch (error) {
     console.error("getDiagnosticsHistory error:", error);

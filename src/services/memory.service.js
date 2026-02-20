@@ -19,6 +19,30 @@ const LEGACY_EVENTS_PAGE_SIZE = 100;
 const LEGACY_EVENTS_MAX_PAGES = 10;
 const LEGACY_FALLBACK_LIMIT = 100;
 
+/**
+ * Per-user TTL cache for the legacy event-scraping path.
+ *
+ * Problem: getLegacyMemoriesFromEvents makes up to 10 sequential HTTP pages
+ * to Mem0's /events/ endpoint, then N individual /memories/{id}/ fetches.
+ * At 1000 concurrent users that's ~10,000 outbound requests per search wave.
+ *
+ * Solution: Cache results per userId for 60 seconds. Active users hit the
+ * cache on every dashboard refresh; only cold/new users pay the scraping cost.
+ */
+const LEGACY_CACHE_TTL_MS = 60_000; // 60 seconds
+const _legacyCache = new Map(); // userId → { ids: string[], ts: number }
+
+// Evict stale entries every 5 minutes to prevent unbounded growth
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of _legacyCache.entries()) {
+        if (now - entry.ts > LEGACY_CACHE_TTL_MS) _legacyCache.delete(key);
+    }
+}, 5 * 60_000);
+
+/** Hard cap on memory text to prevent unbounded Mem0 payloads */
+const MAX_MEMORY_TEXT_LENGTH = 2000;
+
 export class MemoryService {
     constructor() {
         const currentConfig = getMem0Config();
@@ -69,6 +93,13 @@ export class MemoryService {
     }
 
     async fetchLegacyMemoryIdsFromEvents(userId) {
+        // Cache hit: return previously scraped IDs without re-hitting Mem0
+        const cached = _legacyCache.get(userId);
+        if (cached && Date.now() - cached.ts < LEGACY_CACHE_TTL_MS) {
+            logger.debug('LEGACY_CACHE', `Cache HIT for user ${userId}`);
+            return cached.ids;
+        }
+
         const ids = new Set();
         let page = 1;
 
@@ -102,7 +133,10 @@ export class MemoryService {
             page += 1;
         }
 
-        return Array.from(ids);
+        const result = Array.from(ids);
+        // Store fresh result in cache
+        _legacyCache.set(userId, { ids: result, ts: Date.now() });
+        return result;
     }
 
     async getLegacyMemoriesFromEvents(userId, filters = {}, limit = LEGACY_FALLBACK_LIMIT) {
@@ -215,11 +249,16 @@ export class MemoryService {
 
             const sanitizedMetadata = sanitizePII(normalizedMetadata);
 
+            // Hard cap: prevent unbounded payloads from being sent to Mem0
+            const safeText = typeof text === 'string' && text.length > MAX_MEMORY_TEXT_LENGTH
+                ? text.slice(0, MAX_MEMORY_TEXT_LENGTH)
+                : text;
+
             const payload = {
                 messages: [
                     {
                         role: 'user',
-                        content: text
+                        content: safeText
                     }
                 ],
                 user_id: userId,
@@ -324,27 +363,29 @@ export class MemoryService {
 
             const results = this.extractResults(response.data);
 
-            const legacyResults = await this.getLegacyMemoriesFromEvents(userId, filters, limit);
+            // Skip the legacy cascade entirely if the primary API already returned
+            // enough results — this is the common path for active users and avoids
+            // up to 10 sequential HTTP pages + N individual fetches to Mem0.
+            let finalResults = results;
+            if (results.length < limit) {
+                const legacyResults = await this.getLegacyMemoriesFromEvents(userId, filters, limit);
 
-            // Merge and deduplicate by ID
-            const currentIds = new Set(results.map(r => r.id));
-            const uniqueLegacy = legacyResults.filter(r => !currentIds.has(r.id));
+                // Merge and deduplicate by ID
+                const currentIds = new Set(results.map(r => r.id));
+                const uniqueLegacy = legacyResults.filter(r => !currentIds.has(r.id));
+                finalResults = [...results, ...uniqueLegacy];
+            }
 
-            let finalResults = [...results, ...uniqueLegacy];
-
-            // Re-sort combined results by creation date (newest first)
+            // Sort combined results by creation date (newest first)
             finalResults.sort((a, b) => {
                 const aTime = new Date(a.created_at || 0).getTime();
                 const bTime = new Date(b.created_at || 0).getTime();
                 return bTime - aTime;
             });
 
-            // Re-slice to respect limit if needed, though for search we passed limit to legacy fetch
-            // For search, we might want to return top K. 
             if (limit && finalResults.length > limit) {
                 finalResults = finalResults.slice(0, limit);
             }
-
 
             logger.measureDuration('SEARCH_MEMORY', startTime);
             logger.info('SEARCH_MEMORY', 'Search completed', {
@@ -405,15 +446,15 @@ export class MemoryService {
 
             const results = this.extractResults(response.data);
 
-            const legacyResults = await this.getLegacyMemoriesFromEvents(userId, filters);
+            // Only fall back to the legacy event-scraping path if the primary API
+            // returned nothing. For most users this path is skipped entirely.
+            let finalResults = results;
+            if (results.length === 0) {
+                const legacyResults = await this.getLegacyMemoriesFromEvents(userId, filters);
+                finalResults = legacyResults;
+            }
 
-            // Merge and deduplicate by ID
-            const currentIds = new Set(results.map(r => r.id));
-            const uniqueLegacy = legacyResults.filter(r => !currentIds.has(r.id));
-
-            let finalResults = [...results, ...uniqueLegacy];
-
-            // Re-sort combined results by creation date (newest first)
+            // Sort combined results by creation date (newest first)
             finalResults.sort((a, b) => {
                 const aTime = new Date(a.created_at || 0).getTime();
                 const bTime = new Date(b.created_at || 0).getTime();

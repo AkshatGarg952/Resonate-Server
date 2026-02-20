@@ -1,6 +1,10 @@
 import { Intervention } from '../models/Intervention.js';
 import { MemoryService } from './memory.service.js';
 
+/** Truncate user-supplied strings to prevent oversized Mem0 payloads */
+const trunc = (str, max = 500) =>
+    typeof str === 'string' && str.length > max ? str.slice(0, max) : (str ?? '');
+
 export class InterventionService {
     constructor(memoryService) {
         this.memoryService = memoryService || new MemoryService();
@@ -21,8 +25,8 @@ export class InterventionService {
 
             await intervention.save();
 
-            // Store in Mem0
-            const memoryText = `Intervention: ${intervention.recommendation} (Started: ${intervention.startDate.toISOString().split('T')[0]}, Duration: ${intervention.durationDays} days). Reason: ${intervention.rationale}`;
+            // Store in Mem0 — truncate user-supplied fields to prevent oversized payloads
+            const memoryText = `Intervention: ${trunc(intervention.recommendation)} (Started: ${intervention.startDate.toISOString().split('T')[0]}, Duration: ${intervention.durationDays} days). Reason: ${trunc(intervention.rationale)}`;
 
             const metadata = {
                 category: 'intervention.plan',
@@ -91,8 +95,8 @@ export class InterventionService {
 
             await intervention.save();
 
-            // Store outcome in Mem0
-            const memoryText = `Outcome: ${intervention.type} intervention (${intervention.startDate.toISOString().split('T')[0]} to ${new Date().toISOString().split('T')[0]}). Status: ${intervention.status}. Notes: ${outcomeData.notes}. Final Value: ${outcomeData.metricValue}`;
+            // Store outcome in Mem0 — truncate user-supplied fields
+            const memoryText = `Outcome: ${trunc(intervention.type)} intervention (${intervention.startDate.toISOString().split('T')[0]} to ${new Date().toISOString().split('T')[0]}). Status: ${intervention.status}. Notes: ${trunc(outcomeData.notes)}. Final Value: ${outcomeData.metricValue}`;
 
             const metadata = {
                 category: 'intervention.outcome',
@@ -171,8 +175,8 @@ export class InterventionService {
 
             await intervention.save();
 
-            // Mem0 update
-            const memoryText = `Intervention Discontinued: ${intervention.type} - ${intervention.recommendation}. Reason: ${reason}`;
+            // Mem0 update — truncate user-supplied reason
+            const memoryText = `Intervention Discontinued: ${trunc(intervention.type)} - ${trunc(intervention.recommendation)}. Reason: ${trunc(reason)}`;
             const targetUserId = memoryUserId || intervention.user.toString();
             await this.memoryService.addMemory(targetUserId, memoryText, {
                 category: 'intervention.outcome',

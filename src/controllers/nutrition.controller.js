@@ -32,7 +32,8 @@ const generatePlanFromAI = async (user) => {
     const response = await axios.post(`${microserviceUrl}/generate-nutrition`, payload, {
         headers: {
             "x-internal-secret": process.env.INTERNAL_API_SECRET
-        }
+        },
+        timeout: 60_000, // 60s — prevents a slow microservice from hanging a Node worker indefinitely
     });
     return response.data;
 };

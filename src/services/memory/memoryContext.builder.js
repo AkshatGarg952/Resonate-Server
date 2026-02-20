@@ -1,4 +1,4 @@
-import { MemoryService } from '../memory.service.js';
+import { memoryService } from './memoryService.singleton.js';
 import { logger } from '../../utils/memoryLogger.js';
 
 /**
@@ -6,7 +6,7 @@ import { logger } from '../../utils/memoryLogger.js';
  */
 export class MemoryContextBuilder {
     constructor() {
-        this.memoryService = new MemoryService();
+        this.memoryService = memoryService; // shared singleton — one connection pool for all callers
     }
 
     /**
@@ -17,6 +17,7 @@ export class MemoryContextBuilder {
      */
     async buildMemoryContext(userId, intent) {
         try {
+
             logger.debug('BUILD_CONTEXT', `Building context for intent: ${intent}`, { userId });
 
             const context = {

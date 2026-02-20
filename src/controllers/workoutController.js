@@ -1,10 +1,10 @@
 import axios from "axios";
 import Workout from "../models/Workout.js";
 import { FitnessIngestor } from "../services/ingestors/fitness.ingestor.js";
-import { MemoryService } from "../services/memory.service.js";
+import { memoryService } from "../services/memory/memoryService.singleton.js";
 import { MemoryContextBuilder } from "../services/memory/memoryContext.builder.js";
 
-const memoryService = new MemoryService();
+// Shared singleton — reuses one MemoryService connection pool across all requests
 const fitnessIngestor = new FitnessIngestor(memoryService);
 
 export const generateWorkout = async (req, res) => {
@@ -53,7 +53,8 @@ export const generateWorkout = async (req, res) => {
         }, {
             headers: {
                 "x-internal-secret": process.env.INTERNAL_API_SECRET
-            }
+            },
+            timeout: 60_000, // 60s — prevents a slow microservice from hanging a Node worker indefinitely
         });
 
         const plan = response.data.plan;
@@ -82,7 +83,8 @@ export const generateWorkout = async (req, res) => {
 export const getWorkoutHistory = async (req, res) => {
     try {
         const workouts = await Workout.find({ user: req.user._id })
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .limit(50); // Cap at 50 — prevents returning 500+ documents as one JSON blob
 
         res.status(200).json({ status: "success", workouts });
     } catch (error) {
