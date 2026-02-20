@@ -324,11 +324,27 @@ export class MemoryService {
 
             const results = this.extractResults(response.data);
 
-            let finalResults = results;
-            if (!finalResults.length) {
-                const legacyResults = await this.getLegacyMemoriesFromEvents(userId, filters, limit);
-                finalResults = this.applyQueryFallbackFilter(legacyResults, query).slice(0, limit);
+            const legacyResults = await this.getLegacyMemoriesFromEvents(userId, filters, limit);
+
+            // Merge and deduplicate by ID
+            const currentIds = new Set(results.map(r => r.id));
+            const uniqueLegacy = legacyResults.filter(r => !currentIds.has(r.id));
+
+            let finalResults = [...results, ...uniqueLegacy];
+
+            // Re-sort combined results by creation date (newest first)
+            finalResults.sort((a, b) => {
+                const aTime = new Date(a.created_at || 0).getTime();
+                const bTime = new Date(b.created_at || 0).getTime();
+                return bTime - aTime;
+            });
+
+            // Re-slice to respect limit if needed, though for search we passed limit to legacy fetch
+            // For search, we might want to return top K. 
+            if (limit && finalResults.length > limit) {
+                finalResults = finalResults.slice(0, limit);
             }
+
 
             logger.measureDuration('SEARCH_MEMORY', startTime);
             logger.info('SEARCH_MEMORY', 'Search completed', {
@@ -389,10 +405,20 @@ export class MemoryService {
 
             const results = this.extractResults(response.data);
 
-            let finalResults = results;
-            if (!finalResults.length) {
-                finalResults = await this.getLegacyMemoriesFromEvents(userId, filters);
-            }
+            const legacyResults = await this.getLegacyMemoriesFromEvents(userId, filters);
+
+            // Merge and deduplicate by ID
+            const currentIds = new Set(results.map(r => r.id));
+            const uniqueLegacy = legacyResults.filter(r => !currentIds.has(r.id));
+
+            let finalResults = [...results, ...uniqueLegacy];
+
+            // Re-sort combined results by creation date (newest first)
+            finalResults.sort((a, b) => {
+                const aTime = new Date(a.created_at || 0).getTime();
+                const bTime = new Date(b.created_at || 0).getTime();
+                return bTime - aTime;
+            });
 
             logger.measureDuration('GET_ALL_MEMORIES', startTime);
             logger.info('GET_ALL_MEMORIES', 'Memories retrieved', {
