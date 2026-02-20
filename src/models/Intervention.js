@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-export const Intervention = mongoose.model("Intervention", new mongoose.Schema(
+const interventionSchema = new mongoose.Schema(
     {
         user: {
             type: mongoose.Schema.Types.ObjectId,
@@ -60,4 +60,9 @@ export const Intervention = mongoose.model("Intervention", new mongoose.Schema(
         }]
     },
     { timestamps: true }
-));
+);
+
+// Index for fast per-user active intervention lookups
+interventionSchema.index({ user: 1, status: 1 });
+
+export const Intervention = mongoose.model("Intervention", interventionSchema);

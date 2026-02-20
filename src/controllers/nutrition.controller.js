@@ -29,7 +29,11 @@ const generatePlanFromAI = async (user) => {
     };
 
     const microserviceUrl = process.env.MICROSERVICE_URL || "http://localhost:10000";
-    const response = await axios.post(`${microserviceUrl}/generate-nutrition`, payload);
+    const response = await axios.post(`${microserviceUrl}/generate-nutrition`, payload, {
+        headers: {
+            "x-internal-secret": process.env.INTERNAL_API_SECRET
+        }
+    });
     return response.data;
 };
 

@@ -49,7 +49,11 @@ export const generateWorkout = async (req, res) => {
             gender,
             weight,
             cyclePhase,
-            memoryContext // Inject memory context
+            memoryContext
+        }, {
+            headers: {
+                "x-internal-secret": process.env.INTERNAL_API_SECRET
+            }
         });
 
         const plan = response.data.plan;
@@ -71,7 +75,7 @@ export const generateWorkout = async (req, res) => {
         if (error.response) {
             return res.status(error.response.status).json({ message: "Error from generator service", detail: error.response.data });
         }
-        res.status(500).json({ message: "Failed to generate workout", error: error.message });
+        res.status(500).json({ message: "Failed to generate workout" });
     }
 };
 

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import logger from "../utils/logger.js";
 
 export const connectDB = async () => {
   try {
@@ -8,9 +9,9 @@ export const connectDB = async () => {
       serverSelectionTimeoutMS: 5000,  // Fail fast if DB is unreachable
       socketTimeoutMS: 45000,          // Allow long-running queries up to 45s
     });
-    console.log("MongoDB Connected");
+    logger.info("DB", "MongoDB Connected");
   } catch (error) {
-    console.error("MongoDB Error:", error);
+    logger.error("DB", "MongoDB Error", { error: error.message });
     process.exit(1);
   }
 };

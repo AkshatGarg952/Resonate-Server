@@ -1,9 +1,10 @@
 import { User } from "../models/User.js";
 import jwt from "jsonwebtoken";
+import logger from "../utils/logger.js";
 
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-    expiresIn: "1d",
+    expiresIn: "7d", // matches cookie maxAge (7 days)
   });
 };
 
@@ -60,10 +61,11 @@ export const registerUser = async (req, res) => {
     const token = generateToken(user._id);
     setAuthCookie(res, token);
 
-    return res.json({ message: "User Registered", user });
+    return res.json({ message: "User Registered", user, isAdmin: user.role === "admin" });
 
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    logger.error("Auth", "registerUser error", { error: error.message });
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -80,10 +82,11 @@ export const loginUser = async (req, res) => {
     const token = generateToken(user._id);
     setAuthCookie(res, token);
 
-    return res.json({ message: "Login Success", user });
+    // isAdmin flag lets the client gate admin UI without hardcoding email in the JS bundle
+    return res.json({ message: "Login Success", user, isAdmin: user.role === "admin" });
 
   } catch (error) {
-    console.error(error.message);
-    return res.status(500).json({ error: error.message });
+    logger.error("Auth", "loginUser error", { error: error.message });
+    return res.status(500).json({ error: "Internal server error" });
   }
 };

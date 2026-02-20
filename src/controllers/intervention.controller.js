@@ -22,7 +22,7 @@ export const createIntervention = async (req, res) => {
         res.status(201).json({ success: true, intervention });
     } catch (error) {
         console.error("Error creating intervention:", error);
-        res.status(500).json({ success: false, message: "Failed to create intervention", error: error.message });
+        res.status(500).json({ success: false, message: "Internal server error" });
     }
 };
 
@@ -37,7 +37,7 @@ export const getActiveInterventions = async (req, res) => {
         res.status(200).json({ success: true, interventions });
     } catch (error) {
         console.error("Error fetching active interventions:", error);
-        res.status(500).json({ success: false, message: "Failed to fetch interventions", error: error.message });
+        res.status(500).json({ success: false, message: "Internal server error" });
     }
 };
 
@@ -58,7 +58,7 @@ export const recordOutcome = async (req, res) => {
         res.status(200).json({ success: true, intervention });
     } catch (error) {
         console.error("Error recording outcome:", error);
-        res.status(500).json({ success: false, message: "Failed to record outcome", error: error.message });
+        res.status(500).json({ success: false, message: "Internal server error" });
     }
 };
 
@@ -77,7 +77,7 @@ export const getInterventionAnalysis = async (req, res) => {
         res.status(200).json({ success: true, analysis });
     } catch (error) {
         console.error("Error analyzing intervention:", error);
-        res.status(500).json({ success: false, message: "Failed to analyze intervention", error: error.message });
+        res.status(500).json({ success: false, message: "Internal server error" });
     }
 };
 
@@ -91,7 +91,7 @@ export const getInterventions = async (req, res) => {
         res.status(200).json({ success: true, interventions });
     } catch (error) {
         console.error("Error fetching interventions:", error);
-        res.status(500).json({ success: false, message: "Failed to fetch interventions", error: error.message });
+        res.status(500).json({ success: false, message: "Internal server error" });
     }
 };
 
@@ -110,7 +110,7 @@ export const stopIntervention = async (req, res) => {
         res.status(200).json({ success: true, intervention });
     } catch (error) {
         console.error("Error stopping intervention:", error);
-        res.status(500).json({ success: false, message: "Failed to stop intervention", error: error.message });
+        res.status(500).json({ success: false, message: "Internal server error" });
     }
 };
 
@@ -125,7 +125,7 @@ export const updateIntervention = async (req, res) => {
         res.status(200).json({ success: true, intervention });
     } catch (error) {
         console.error("Error updating intervention:", error);
-        res.status(500).json({ success: false, message: "Failed to update intervention", error: error.message });
+        res.status(500).json({ success: false, message: "Internal server error" });
     }
 };
 import { MemoryContextBuilder } from '../services/memory/memoryContext.builder.js';
@@ -155,6 +155,10 @@ export const suggestInterventions = async (req, res) => {
             age: user.age,
             gender: user.gender,
             memoryContext
+        }, {
+            headers: {
+                "x-internal-secret": process.env.INTERNAL_API_SECRET
+            }
         });
 
         // Expected response: { suggestions: [ { title, description, type, duration, ... } ] }
@@ -165,6 +169,6 @@ export const suggestInterventions = async (req, res) => {
     } catch (error) {
         console.error("Error suggesting interventions:", error);
         // Fallback if AI fails? Or just return error
-        res.status(500).json({ success: false, message: "Failed to generate suggestions", error: error.message });
+        res.status(500).json({ success: false, message: "Internal server error" });
     }
 };

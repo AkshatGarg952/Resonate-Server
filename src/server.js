@@ -3,6 +3,7 @@ import os from "os";
 import "dotenv/config";
 import app from "./app.js";
 import { connectDB } from "./config/db.js";
+import { startFitnessSync } from "./cron/fitnessSync.js";
 
 const PORT = process.env.PORT || 3000;
 
@@ -14,6 +15,7 @@ if (cluster.isPrimary && NUM_WORKERS > 1) {
     console.log(
         `Primary ${process.pid} — spawning ${NUM_WORKERS} workers across ${NUM_WORKERS} CPU cores`
     );
+    startFitnessSync();
 
     for (let i = 0; i < NUM_WORKERS; i++) {
         cluster.fork();
@@ -27,6 +29,9 @@ if (cluster.isPrimary && NUM_WORKERS > 1) {
     });
 } else {
     // Worker process (or single dev process)
+    if (NUM_WORKERS === 1) {
+        startFitnessSync();
+    }
     await connectDB();
     app.listen(PORT, () =>
         console.log(`Worker ${process.pid} listening on port ${PORT}`)

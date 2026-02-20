@@ -42,6 +42,10 @@ export const analyzeFood = async (req, res) => {
                     const response = await axios.post(`${microserviceUrl}/analyze-food`, {
                         imageUrl,
                         cuisine: req.body.cuisine || "General"
+                    }, {
+                        headers: {
+                            "x-internal-secret": process.env.INTERNAL_API_SECRET
+                        }
                     });
 
                     const aiData = response.data.analysis;

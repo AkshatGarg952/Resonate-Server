@@ -1,21 +1,16 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
+/**
+ * Role-based admin middleware.
+ * Checks req.user.role === 'admin' instead of comparing against ADMIN_EMAIL env var.
+ * This allows admin access to be granted/revoked by updating the role field in MongoDB
+ * without requiring an environment variable change or redeployment.
+ */
 export const isAdmin = (req, res, next) => {
     try {
         if (!req.user) {
             return res.status(401).json({ message: "Authentication required" });
         }
 
-        const adminEmail = process.env.ADMIN_EMAIL;
-
-        if (!adminEmail) {
-            console.error("ADMIN_EMAIL not set in environment variables");
-            return res.status(500).json({ message: "Server configuration error" });
-        }
-
-        if (req.user.email !== adminEmail) {
-            console.warn(`Unauthorized admin access attempt by: ${req.user.email}`);
+        if (req.user.role !== "admin") {
             return res.status(403).json({ message: "Access denied: Admin privileges required" });
         }
 

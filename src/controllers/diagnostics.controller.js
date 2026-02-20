@@ -63,6 +63,12 @@ export const uploadDiagnostics = async (req, res) => {
               {
                 pdfUrl,
                 biomarkers: BIOMARKERS_LIST
+              },
+              {
+                headers: {
+                  "x-internal-secret": process.env.INTERNAL_API_SECRET
+                },
+                timeout: 90000 // 90s — AI parsing can be slow
               }
             );
 
@@ -168,7 +174,8 @@ export const getLatestDiagnostics = async (req, res) => {
 
     return res.json(latest);
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error("getLatestDiagnostics error:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -190,12 +197,21 @@ export const getDiagnosticsHistory = async (req, res) => {
 
     return res.json(history);
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error("getDiagnosticsHistory error:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
 
 export const fetchDiagnosticsFromAPI = async (req, res) => {
+  // Guard: Lab API integration is not yet configured
+  if (!process.env.LAB_API_URL || !process.env.LAB_API_KEY) {
+    return res.status(501).json({
+      message: "Lab API integration is not configured on this server.",
+      code: "NOT_IMPLEMENTED"
+    });
+  }
+
   try {
     const userId = req.user.firebaseUid;
 
@@ -207,7 +223,8 @@ export const fetchDiagnosticsFromAPI = async (req, res) => {
       {
         headers: {
           Authorization: `Bearer ${process.env.LAB_API_KEY}`
-        }
+        },
+        timeout: 30000
       }
     );
 
@@ -233,7 +250,7 @@ export const fetchDiagnosticsFromAPI = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Fetch diagnostics error:", error);
-    return res.status(500).json({ error: error.message });
+    logger.error("fetchDiagnosticsFromAPI", "Lab API fetch failed", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 }

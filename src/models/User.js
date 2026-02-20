@@ -2,10 +2,17 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
-    firebaseUid: { type: String, required: true, unique: true },
+    firebaseUid: { type: String, required: true, unique: true, index: true },
     email: { type: String },
     name: { type: String },
     phone: { type: String },
+
+    // Role-based access control — replaces single-email ADMIN_EMAIL check
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
 
     gender: {
       type: String,
@@ -25,7 +32,6 @@ const userSchema = new mongoose.Schema(
     heightCm: Number,
     weightKg: Number,
 
-
     goals: String,
 
     dietType: {
@@ -38,7 +44,6 @@ const userSchema = new mongoose.Schema(
       refreshToken: String,
       expiryDate: Number
     },
-
 
     hasMedicalCondition: { type: Boolean, default: false },
     medicalConditions: [String],

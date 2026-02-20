@@ -28,7 +28,6 @@ const diagnosticsSchema = new mongoose.Schema(
       default: {}
     },
 
-
     biomarkersByCategory: {
       type: mongoose.Schema.Types.Mixed,
       default: {}
@@ -44,5 +43,8 @@ const diagnosticsSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Compound index: fast per-user history queries sorted by most recent first
+diagnosticsSchema.index({ userId: 1, createdAt: -1 });
 
 export const Diagnostics = mongoose.model("Diagnostics", diagnosticsSchema);

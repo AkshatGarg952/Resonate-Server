@@ -25,4 +25,7 @@ const workoutSchema = new mongoose.Schema({
     }
 });
 
+// Index for fast per-user workout history queries
+workoutSchema.index({ user: 1 });
+
 export default mongoose.model("Workout", workoutSchema);

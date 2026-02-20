@@ -1,112 +1,86 @@
 /**
- * Simple structured logger for Resonate Server.
- * Replaces console.log with consistent formatting.
+ * Structured logger for Resonate Server using pino.
+ *
+ * - Production: JSON output (parseable by Railway log search, Datadog, etc.)
+ * - Development: pretty-printed output via pino-pretty
+ *
+ * Interface is identical to the previous custom logger so no other files need changes:
+ *   logger.info(context, message, data?)
+ *   logger.warn(context, message, data?)
+ *   logger.error(context, message, error?)
+ *   logger.debug(context, message, data?)
  */
 
-const LOG_LEVELS = {
-    DEBUG: 0,
-    INFO: 1,
-    WARN: 2,
-    ERROR: 3,
-};
+import pino from "pino";
 
-const CURRENT_LEVEL = LOG_LEVELS[process.env.LOG_LEVEL?.toUpperCase()] ?? LOG_LEVELS.INFO;
+const isDev = process.env.NODE_ENV !== "production";
+
+const pinoLogger = pino({
+    level: process.env.LOG_LEVEL?.toLowerCase() ?? "info",
+    ...(isDev
+        ? {
+            transport: {
+                target: "pino-pretty",
+                options: {
+                    colorize: true,
+                    translateTime: "SYS:yyyy-mm-dd HH:MM:ss",
+                    ignore: "pid,hostname",
+                },
+            },
+        }
+        : {
+            // Production: structured JSON — never log pretty in prod (breaks log parsers)
+            formatters: {
+                level(label) {
+                    return { level: label };
+                },
+            },
+            timestamp: pino.stdTimeFunctions.isoTime,
+        }),
+});
 
 /**
- * Format timestamp for logs.
- */
-function getTimestamp() {
-    return new Date().toISOString().replace('T', ' ').substring(0, 19);
-}
-
-/**
- * Format log message with level and timestamp.
- */
-function formatMessage(level, context, message) {
-    return `${getTimestamp()} | ${level.padEnd(5)} | ${context} | ${message}`;
-}
-
-/**
- * Logger object with level-specific methods.
+ * Thin wrapper around pino to preserve the existing logger.X(context, message, data) signature.
  */
 const logger = {
-    /**
-     * Debug level - for development only.
-     */
     debug(context, message, data = null) {
-        if (CURRENT_LEVEL <= LOG_LEVELS.DEBUG) {
-            console.log(formatMessage('DEBUG', context, message));
-            if (data) console.log(data);
-        }
+        pinoLogger.debug({ context, ...(data && { data }) }, message);
     },
 
-    /**
-     * Info level - general information.
-     */
     info(context, message, data = null) {
-        if (CURRENT_LEVEL <= LOG_LEVELS.INFO) {
-            console.log(formatMessage('INFO', context, message));
-            if (data) console.log(data);
-        }
+        pinoLogger.info({ context, ...(data && { data }) }, message);
     },
 
-    /**
-     * Warn level - something unexpected but not critical.
-     */
     warn(context, message, data = null) {
-        if (CURRENT_LEVEL <= LOG_LEVELS.WARN) {
-            console.warn(formatMessage('WARN', context, message));
-            if (data) console.warn(data);
-        }
+        pinoLogger.warn({ context, ...(data && { data }) }, message);
     },
 
-    /**
-     * Error level - something went wrong.
-     */
     error(context, message, error = null) {
-        if (CURRENT_LEVEL <= LOG_LEVELS.ERROR) {
-            console.error(formatMessage('ERROR', context, message));
-            if (error) {
-                if (error instanceof Error) {
-                    console.error(`  → ${error.name}: ${error.message}`);
-                    if (error.stack && process.env.NODE_ENV !== 'production') {
-                        console.error(error.stack);
-                    }
-                } else {
-                    console.error(error);
-                }
-            }
+        if (error instanceof Error) {
+            pinoLogger.error({ context, err: error }, message);
+        } else {
+            pinoLogger.error({ context, ...(error && { data: error }) }, message);
         }
     },
 
-    /**
-     * Log HTTP request details.
-     */
-    request(method, path, userId = 'anonymous') {
-        this.info('HTTP', `${method} ${path} [user: ${userId}]`);
+    // Keep older helper methods for backward compatibility
+    request(method, path, userId = "anonymous") {
+        this.info("HTTP", `${method} ${path} [user: ${userId}]`);
     },
 
-    /**
-     * Log response with duration.
-     */
     response(method, path, status, durationMs) {
-        const level = status >= 400 ? 'warn' : 'info';
-        this[level]('HTTP', `${method} ${path} → ${status} (${durationMs}ms)`);
+        const level = status >= 400 ? "warn" : "info";
+        this[level]("HTTP", `${method} ${path} → ${status} (${durationMs}ms)`);
     },
 
-    /**
-     * Log database operation.
-     */
-    db(operation, collection, message = '') {
-        this.debug('DB', `${operation} ${collection} ${message}`.trim());
+    db(operation, collection, message = "") {
+        this.debug("DB", `${operation} ${collection} ${message}`.trim());
     },
 
-    /**
-     * Log external API call.
-     */
-    external(service, operation, message = '') {
-        this.info('API', `${service}: ${operation} ${message}`.trim());
+    external(service, operation, message = "") {
+        this.info("API", `${service}: ${operation} ${message}`.trim());
     },
 };
 
 export default logger;
+
