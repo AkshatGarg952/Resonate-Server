@@ -229,8 +229,11 @@ export const getDiagnosticsHistory = async (req, res) => {
       .sort({ createdAt: -1 })
       .select("biomarkers biomarkersByCategory status category pdfUrl updatedAt createdAt");
 
-    diagCache.set(cacheKey, history);
-    return res.json(history);
+    // JSON round-trip: strips Mongoose internals (TCP socket refs, etc.) that
+    // node-cache's `clone` library cannot deep-copy (read-only properties crash it)
+    const plainHistory = JSON.parse(JSON.stringify(history));
+    diagCache.set(cacheKey, plainHistory);
+    return res.json(plainHistory);
   } catch (error) {
     console.error("getDiagnosticsHistory error:", error);
     return res.status(500).json({ error: "Internal server error" });

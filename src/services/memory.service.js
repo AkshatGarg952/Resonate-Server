@@ -446,13 +446,16 @@ export class MemoryService {
 
             const results = this.extractResults(response.data);
 
-            // Only fall back to the legacy event-scraping path if the primary API
-            // returned nothing. For most users this path is skipped entirely.
-            let finalResults = results;
-            if (results.length === 0) {
-                const legacyResults = await this.getLegacyMemoriesFromEvents(userId, filters);
-                finalResults = legacyResults;
-            }
+            // Always merge primary + legacy so no memories are hidden.
+            // The 60s TTL cache on fetchLegacyMemoryIdsFromEvents keeps this
+            // cheap — the HTTP scrape fires at most once per minute per user.
+            const legacyResults = await this.getLegacyMemoriesFromEvents(userId, filters);
+
+            // Deduplicate by ID
+            const primaryIds = new Set(results.map(r => r.id));
+            const uniqueLegacy = legacyResults.filter(r => !primaryIds.has(r.id));
+            let finalResults = [...results, ...uniqueLegacy];
+
 
             // Sort combined results by creation date (newest first)
             finalResults.sort((a, b) => {

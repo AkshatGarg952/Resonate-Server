@@ -9,7 +9,7 @@ const interventionSchema = new mongoose.Schema(
         },
         type: {
             type: String,
-            enum: ["sleep", "training", "nutrition", "stress", "recovery", "supplement", "diet", "fitness", "meditation", "other"],
+            enum: ["sleep", "training", "nutrition", "stress", "recovery", "supplement", "supplementation", "diet", "fitness", "lifestyle", "meditation", "other"],
             required: true,
         },
         recommendation: {
@@ -33,12 +33,10 @@ const interventionSchema = new mongoose.Schema(
             type: Date
         },
         targetMetric: {
-            type: String, // e.g., "sleep_hours", "rpe_avg"
-            required: true,
+            type: String, // e.g., "sleep_hours", "rpe_avg" — optional for AI-generated interventions
         },
         targetValue: {
-            type: Number,
-            required: true,
+            type: Number, // optional for AI-generated interventions
         },
         status: {
             type: String,

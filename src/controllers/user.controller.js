@@ -1,7 +1,7 @@
 import { User } from "../models/User.js";
-import { MemoryService } from "../services/memory.service.js";
+import { memoryService } from "../services/memory/memoryService.singleton.js";
 
-const memoryService = new MemoryService();
+// Use shared singleton — no separate connection pool per controller
 
 export const getProfile = async (req, res) => {
   try {
@@ -82,16 +82,23 @@ export const getMemories = async (req, res) => {
 
     const { category } = req.query;
 
-    // Map client categories to Mem0 specific categories
+    // Map client tab names to Mem0 category *prefixes*.
+    // Using the broad prefix (e.g. 'fitness') rather than a single subcategory
+    // (e.g. 'fitness.training') means all subcategories are included:
+    //   'workout'      -> matches fitness.training, fitness.workout, etc.
+    //   'diet'         -> matches nutrition.intake, nutrition.plan, etc.
+    //   'health'       -> matches diagnostics.blood, diagnostics.bca, etc.
+    //   'recovery'     -> matches recovery.sleep, recovery.stress, recovery.daily_log, etc.
+    //   'intervention' -> matches intervention.plan, intervention.outcome, etc.
     const categoryMap = {
-      'workout': 'fitness.training',
-      'diet': 'nutrition.intake',
-      'health': 'diagnostics.blood', // Defaulting to blood for now, could be improved
-      'recovery': 'recovery.sleep',
-      // 'gym' -> 'fitness.training' ?
+      'workout': 'fitness',
+      'diet': 'nutrition',
+      'health': 'diagnostics',
+      'recovery': 'recovery',
+      'intervention': 'intervention',
     };
 
-    const mappedCategory = categoryMap[category] || category;
+    const mappedCategory = categoryMap[category] || category || undefined;
 
     console.log(`[getMemories] Fetching memories for user ${req.user.firebaseUid}. Category: ${category} -> ${mappedCategory}`);
 
