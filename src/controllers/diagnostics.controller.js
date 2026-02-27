@@ -45,12 +45,15 @@ export const uploadDiagnostics = async (req, res) => {
       {
         resource_type: "raw",
         folder: "resonate-reports",
-        format: "pdf",
       },
       async (error, result) => {
         try {
           if (error) {
-            return res.status(500).json({ message: "Cloudinary upload failed" });
+            console.error("Cloudinary upload error:", JSON.stringify(error, null, 2));
+            return res.status(500).json({
+              message: "Cloudinary upload failed",
+              detail: error.message || error.error?.message || String(error)
+            });
           }
 
           const pdfUrl = result.secure_url;
