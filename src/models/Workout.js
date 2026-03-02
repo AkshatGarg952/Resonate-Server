@@ -19,6 +19,35 @@ const workoutSchema = new mongoose.Schema({
         type: Object,
         required: true
     },
+    status: {
+        type: String,
+        enum: ['pending', 'completed'],
+        default: 'pending'
+    },
+    rpe: {
+        type: Number,
+        min: 1,
+        max: 10,
+        default: null
+    },
+    energyLevel: {
+        type: Number,
+        min: 1,
+        max: 10,
+        default: null
+    },
+    notes: {
+        type: String,
+        default: ''
+    },
+    durationMinutes: {
+        type: Number,
+        default: null
+    },
+    completedAt: {
+        type: Date,
+        default: null
+    },
     createdAt: {
         type: Date,
         default: Date.now
